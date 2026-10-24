@@ -5,7 +5,7 @@ Legend: ✅ merged to main · 🟡 in progress · ⬜ not started
 
 ## Phase 0 — Repo & infrastructure
 - ✅ `feat/p0-repo-skeleton`
-- ⬜ `feat/p0-backend-scaffold`
+- ✅ `feat/p0-backend-scaffold`
 - ⬜ `feat/p0-docker-compose`
 - ⬜ `feat/p0-mobile-scaffold`
 - ⬜ `feat/p0-ci`
