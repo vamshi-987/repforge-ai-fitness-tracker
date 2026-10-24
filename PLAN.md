@@ -95,7 +95,7 @@ repforge/
 - **docker-compose:**
   - `postgres:16` (with a `pg_trgm` init script)
   - `redis:7`
-  - `minio` + `minio-init` (creates buckets `media`, `food-photos`, `avatars`)
+  - `s3` (SeaweedFS; MinIO no longer publishes Docker images) + `s3-init` (aws-cli creates buckets `media`, `food-photos`, `avatars`)
   - `api` (uvicorn with `--reload` and a bind mount)
   - `worker` (celery)
   - `beat` (celery beat)
@@ -249,7 +249,7 @@ git switch main && git merge --no-ff feat/pN-<name> && git push origin main
 
 ### Phase 5 — Body & water
 1. `feat/p5-uploads-body-backend`
-   - `/uploads/presign` (MinIO/R2).
+   - `/uploads/presign` (SeaweedFS in dev / R2 in prod).
    - CRUD for body weights, measurements and photos. Weight history includes weekly averages.
 2. `feat/p5-body-mobile`
    - Weight log with `WeightTrendChart` (daily dots + weekly average line), measurements form, progress photos (camera or library → presigned upload).

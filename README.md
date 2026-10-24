@@ -29,9 +29,9 @@ CLAUDE.md  product spec and engineering rules
 
 ```bash
 cp .env.example .env
-make up            # postgres, redis, minio, api, worker, beat
+make up            # postgres, redis, s3 (SeaweedFS), api, worker, beat
 make migrate       # run Alembic migrations inside the api container
-curl localhost:8000/v1/health
+curl localhost:8010/v1/health
 
 make backend-venv  # create backend/.venv and install deps (for local lint/test)
 make backend-check # ruff + mypy + pytest
@@ -39,7 +39,9 @@ make backend-check # ruff + mypy + pytest
 cd mobile && pnpm install && pnpm start
 ```
 
-For a physical phone, set `EXPO_PUBLIC_API_URL` in `mobile/.env` to your computer's LAN IP, e.g. `http://192.168.1.20:8000`.
+For a physical phone, set `EXPO_PUBLIC_API_URL` in `mobile/.env` to your computer's LAN IP, e.g. `http://192.168.1.20:8010`.
+
+Host ports (set in `.env`): API 8010, Postgres 5442, Redis 6389, S3 9010. They avoid the default ports so RepForge can run alongside other local stacks.
 
 ## Workflow
 
