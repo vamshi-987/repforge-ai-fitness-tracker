@@ -19,7 +19,11 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     database_url: str = "postgresql+asyncpg://repforge:repforge@localhost:5432/repforge"
+    # Integration tests migrate and use this database instead of DATABASE_URL.
+    test_database_url: str | None = None
     redis_url: str = "redis://localhost:6379/0"
+    celery_broker_url: str = "redis://localhost:6379/1"
+    celery_result_backend: str = "redis://localhost:6379/2"
 
     cors_origins: list[str] = []
 

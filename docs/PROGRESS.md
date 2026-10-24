@@ -6,7 +6,7 @@ Legend: ✅ merged to main · 🟡 in progress · ⬜ not started
 ## Phase 0 — Repo & infrastructure
 - ✅ `feat/p0-repo-skeleton`
 - ✅ `feat/p0-backend-scaffold`
-- ⬜ `feat/p0-docker-compose`
+- ✅ `feat/p0-docker-compose`
 - ⬜ `feat/p0-mobile-scaffold`
 - ⬜ `feat/p0-ci`
 
@@ -73,3 +73,5 @@ Legend: ✅ merged to main · 🟡 in progress · ⬜ not started
 
 ## Notes
 - Python dependencies are installed only into `backend/.venv` (no global installs).
+- Dev object storage is SeaweedFS because MinIO stopped publishing Docker images. Prod uses Cloudflare R2.
+- RepForge host ports: API 8010, Postgres 5442, Redis 6389, S3 9010 (defaults clash with other local stacks).

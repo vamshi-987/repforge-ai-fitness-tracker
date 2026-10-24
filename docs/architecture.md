@@ -8,10 +8,10 @@ CLAUDE.md §3 is the canonical overview. This file records how the pieces are wi
  Expo app (phone / emulator)
    │  HTTPS + JWT  (EXPO_PUBLIC_API_URL)
    ▼
- api      FastAPI · uvicorn --reload · :8000
-   │ ├── postgres  PostgreSQL 16   :5432   (repforge, repforge_test)
-   │ ├── redis     Redis 7         :6379   (cache, rate limits, Celery broker/results)
-   │ └── minio     S3-compatible   :9000 / console :9001 (buckets: media, food-photos, avatars)
+ api      FastAPI · uvicorn --reload · host :8010 → :8000
+   │ ├── postgres  PostgreSQL 16   host :5442  (repforge, repforge_test)
+   │ ├── redis     Redis 7         host :6389  (cache, rate limits, Celery broker/results)
+   │ └── s3        SeaweedFS (S3)  host :9010  (buckets: media, food-photos, avatars; R2 in prod)
    │
  worker   Celery worker  (same image as api)
  beat     Celery beat    (same image as api)
