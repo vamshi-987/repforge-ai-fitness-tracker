@@ -1,7 +1,23 @@
 {
   "name": "repforge-mobile",
   "version": "0.1.0",
+  "private": true,
   "main": "expo-router/entry",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write . && eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "db:generate": "drizzle-kit generate"
+  },
   "dependencies": {
     "@tanstack/react-query": "^5.104.5",
     "drizzle-orm": "^0.45.4",
@@ -31,18 +47,6 @@
     "prettier": "^3.9.10",
     "typescript": "~6.0.3"
   },
-  "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "lint": "eslint . && prettier --check .",
-    "format": "prettier --write . && eslint . --fix",
-    "typecheck": "tsc --noEmit",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "db:generate": "drizzle-kit generate"
-  },
-  "private": true,
   "jest": {
     "preset": "jest-expo",
     "setupFiles": [

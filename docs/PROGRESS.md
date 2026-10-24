@@ -8,7 +8,7 @@ Legend: ✅ merged to main · 🟡 in progress · ⬜ not started
 - ✅ `feat/p0-backend-scaffold`
 - ✅ `feat/p0-docker-compose`
 - ✅ `feat/p0-mobile-scaffold`
-- ⬜ `feat/p0-ci`
+- ✅ `feat/p0-ci`
 
 ## Phase 1 — Auth, profile, onboarding, settings
 - ⬜ `feat/p1-auth-backend`
