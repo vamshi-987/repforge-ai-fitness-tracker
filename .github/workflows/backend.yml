@@ -1,0 +1,80 @@
+name: backend
+
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths: ["backend/**", "infra/**", ".github/workflows/backend.yml"]
+  pull_request:
+    paths: ["backend/**", "infra/**", ".github/workflows/backend.yml"]
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: repforge
+          POSTGRES_PASSWORD: repforge
+          POSTGRES_DB: repforge_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U repforge -d repforge_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+
+    env:
+      ENVIRONMENT: test
+      DATABASE_URL: postgresql+asyncpg://repforge:repforge@localhost:5432/repforge_test
+      TEST_DATABASE_URL: postgresql+asyncpg://repforge:repforge@localhost:5432/repforge_test
+      REDIS_URL: redis://localhost:6379/0
+      CELERY_BROKER_URL: redis://localhost:6379/1
+      CELERY_RESULT_BACKEND: redis://localhost:6379/2
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Create venv and install dependencies
+        run: make venv PYTHON=python
+
+      - name: Lint (ruff + mypy)
+        run: make lint
+
+      - name: Unit tests (services coverage >= 95%)
+        run: make test
+
+      - name: Start a Celery worker for integration tests
+        run: .venv/bin/celery -A app.workers.celery_app worker --loglevel WARNING --concurrency 1 --detach --logfile /tmp/celery.log --pidfile /tmp/celery.pid
+
+      - name: Integration tests (postgres + redis + worker)
+        run: make test-integration
+
+      - name: Celery log on failure
+        if: failure()
+        run: cat /tmp/celery.log || true
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build backend image
+        run: docker build --target runtime -t repforge-backend:ci backend

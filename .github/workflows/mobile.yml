@@ -1,0 +1,48 @@
+name: mobile
+
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths: ["mobile/**", ".github/workflows/mobile.yml"]
+  pull_request:
+    paths: ["mobile/**", ".github/workflows/mobile.yml"]
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Enable pnpm (version from package.json "packageManager")
+        run: corepack enable pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('mobile/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (eslint + prettier)
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test --ci
