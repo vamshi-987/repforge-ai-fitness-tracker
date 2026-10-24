@@ -16,3 +16,22 @@ Base URL: `/v1`. All requests and responses are JSON unless noted.
 - **Time:** timestamps are UTC ISO-8601. `log_date` is a date in the user's timezone.
 
 ---
+
+## Health
+
+### `GET /v1/health`
+Liveness. Never touches dependencies.
+
+**200**
+```json
+{"status": "ok", "version": "0.1.0"}
+```
+
+### `GET /v1/health/ready`
+Readiness. Checks PostgreSQL and Redis.
+
+**200** (all dependencies up) or **503** (any down):
+```json
+{"status": "ok", "version": "0.1.0", "checks": {"database": "ok", "redis": "ok"}}
+```
+`status` is `"ok"` or `"degraded"`. Each check is `"ok"` or `"down"`.
