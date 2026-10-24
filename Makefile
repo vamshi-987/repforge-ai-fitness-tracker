@@ -1,7 +1,7 @@
 COMPOSE ?= docker compose
 
 .PHONY: env up down nuke logs ps migrate backend-venv backend-lint backend-test backend-check \
-        backend-test-integration
+        backend-test-integration mobile-install mobile-check mobile-start check
 
 env:
 	@test -f .env || (cp .env.example .env && echo "created .env from .env.example")
@@ -41,3 +41,16 @@ backend-check:
 
 backend-test-integration: env
 	$(MAKE) -C backend test-integration
+
+## Mobile (pnpm) -------------------------------------------------------------
+mobile-install:
+	cd mobile && pnpm install
+
+mobile-check:
+	cd mobile && pnpm lint && pnpm typecheck && pnpm test
+
+mobile-start:
+	cd mobile && pnpm start
+
+## Everything that must be green before merging to main
+check: backend-check mobile-check
