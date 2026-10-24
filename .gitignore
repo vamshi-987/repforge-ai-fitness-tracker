@@ -1,0 +1,44 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+
+# Node / Expo
+node_modules/
+.expo/
+dist-web/
+web-build/
+expo-env.d.ts
+*.tsbuildinfo
+mobile/ios/
+mobile/android/
+mobile/coverage/
+npm-debug.*
+yarn-error.*
+pnpm-debug.*
+
+# Docker volumes (local)
+.data/

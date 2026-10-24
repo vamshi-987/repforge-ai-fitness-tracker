@@ -10,7 +10,7 @@
 
 CLAUDE.md stays the source of truth for the stack, data model, API, formulas and AI rules. This plan adds sequencing, the missing pieces, and the workflow. It lives at the repo root as `PLAN.md` and is committed in Phase 0, so every later chat window can read it.
 
-Environment facts (checked): macOS 12, Node 24, Python 3.11 locally (backend runs 3.12 in Docker, or locally via `uv`), Docker 24, `gh` installed but **not logged in**, **pnpm not installed**.
+Environment facts (checked): macOS 12, Node 24, Python 3.12.3 via pyenv (all Python deps live in `backend/.venv` only — no global installs), Docker 24, pnpm via corepack.
 
 ---
 
@@ -87,7 +87,7 @@ repforge/
   CLAUDE.md  PLAN.md  README.md  LICENSE (MIT)  Makefile  docker-compose.yml  .env.example
   docs/ PROGRESS.md api.md architecture.md
   .github/workflows/ backend.yml mobile.yml
-  backend/   (structure per CLAUDE.md §9; pyproject + uv; ruff + mypy + pytest)
+  backend/   (structure per CLAUDE.md §9; pyproject + venv/pip (`backend/.venv`); ruff + mypy + pytest)
   mobile/    (structure per CLAUDE.md §8; pnpm; eslint + tsc + jest)
 ```
 
@@ -100,7 +100,7 @@ repforge/
   - `worker` (celery)
   - `beat` (celery beat)
   - All have healthchecks. Profile `test` adds a throwaway Postgres for pytest.
-- **Backend Dockerfile:** multi-stage build (uv build → slim runtime, non-root user). The same image serves api, worker and beat.
+- **Backend Dockerfile:** multi-stage build (pip wheel build stage → slim runtime, non-root user). The same image serves api, worker and beat.
 - **Redis usage (key → TTL):**
   - `exlib:{library_version}:{filters_hash}` → 1 h. `GET /exercises` also returns an ETag and `Cache-Control: max-age=300`.
   - `foodsearch:{source}:{q_norm}` → 7 d. `off:barcode:{code}` → 30 d (1 d for negative results).
