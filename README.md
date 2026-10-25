@@ -1,5 +1,7 @@
 # RepForge
 
+[![backend](https://github.com/vamshi-987/repforge-ai-fitness-tracker/actions/workflows/backend.yml/badge.svg)](https://github.com/vamshi-987/repforge-ai-fitness-tracker/actions/workflows/backend.yml) [![mobile](https://github.com/vamshi-987/repforge-ai-fitness-tracker/actions/workflows/mobile.yml/badge.svg)](https://github.com/vamshi-987/repforge-ai-fitness-tracker/actions/workflows/mobile.yml)
+
 An offline-first workout tracker with AI-assisted nutrition and coaching.
 
 - **Mobile:** Expo (React Native) + TypeScript, Expo Router, SQLite (Drizzle), Zustand, TanStack Query

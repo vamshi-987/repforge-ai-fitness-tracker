@@ -6,7 +6,7 @@
 - builds the whole thing,
 - fills the gaps in the spec (for example, the live elapsed-time counter from starting a workout until finishing it),
 - is split into **phases → feature branches**, sized so that each phase runs in **its own chat window, one after another**,
-- is pushed to a **public GitHub repo `repforge`**, with one feature branch per feature, **merged locally into `main` after local tests pass**, then pushed.
+- is pushed to a **public GitHub repo `repforge-ai-fitness-tracker` (https://github.com/vamshi-987/repforge-ai-fitness-tracker)**, with one feature branch per feature, **merged locally into `main` after local tests pass**, then pushed.
 
 CLAUDE.md stays the source of truth for the stack, data model, API, formulas and AI rules. This plan adds sequencing, the missing pieces, and the workflow. It lives at the repo root as `PLAN.md` and is committed in Phase 0, so every later chat window can read it.
 
@@ -152,7 +152,7 @@ git switch main && git merge --no-ff feat/pN-<name> && git push origin main
 ### Phase 0 — Repo & infrastructure
 1. `feat/p0-repo-skeleton`
    - `git init`, `.gitignore`, README, MIT license (PLAN.md already at repo root), `PROGRESS.md`, an `api.md` stub, `architecture.md`.
-   - `gh repo create repforge --public --source . --push`.
+   - `gh repo create repforge-ai-fitness-tracker --public --source . --push`, then `gh auth setup-git` so plain `git push` works.
 2. `feat/p0-backend-scaffold`
    - FastAPI `main.py`, `config.py` (pydantic-settings), `/v1/health`.
    - Error envelope handler (`{"error":{code,message,details}}`), JSON logging with a request-id middleware.
