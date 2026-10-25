@@ -42,6 +42,16 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Protected guard={where === 'app'}>
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="settings"
+              options={{
+                headerShown: true,
+                title: 'Settings',
+                headerStyle: { backgroundColor: theme.colors.surface },
+                headerTintColor: theme.colors.text,
+                headerShadowVisible: false,
+              }}
+            />
           </Stack.Protected>
           {/* Login/register and onboarding; app/(auth)/_layout.tsx guards each part. */}
           <Stack.Protected guard={where === 'login' || where === 'onboarding'}>
