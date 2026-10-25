@@ -4,7 +4,7 @@ VENV   ?= .venv
 BIN    := $(VENV)/bin
 SERVICES_COVERAGE ?= 95
 
-.PHONY: venv lint format test test-integration check migrate revision run
+.PHONY: venv lint format test test-unit test-integration check migrate revision run
 
 venv:
 	$(PYTHON) -m venv $(VENV)
@@ -20,12 +20,17 @@ format:
 	$(BIN)/ruff check --fix .
 	$(BIN)/ruff format .
 
-# Unit tests (no external services). Domain services must stay at >= 95% coverage.
+# Full suite (unit + integration) with the coverage gate: services must stay at >= 95%.
+# Needs `make up` from the repo root: API tests run against the real Postgres test database.
 test:
-	$(BIN)/pytest -m "not integration" --cov --cov-report=term
+	$(BIN)/pytest --cov --cov-report=term
 	$(BIN)/coverage report --include='app/services/*' --fail-under=$(SERVICES_COVERAGE)
 
-# Needs `make up` from the repo root (postgres + redis reachable on localhost).
+# Fast subset that needs no external services.
+test-unit:
+	$(BIN)/pytest -m "not integration"
+
+# Integration tests only (postgres + redis + a Celery worker reachable on localhost).
 test-integration:
 	$(BIN)/pytest -m integration
 
