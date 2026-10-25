@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.config import DEV_JWT_SECRET, Settings
 from app.schemas.user import Username
 from app.services import auth as auth_service
-from app.services.auth import _conflict_from, classify_refresh, normalize_email, username_base
+from app.services.auth import classify_refresh, conflict_from, normalize_email, username_base
 
 NOW = datetime(2026, 10, 25, tzinfo=UTC)
 
@@ -80,7 +80,7 @@ def test_prod_refuses_the_dev_jwt_secret() -> None:
 def test_integrity_errors_map_to_409(constraint: str, code: str) -> None:
     exc = IntegrityError("INSERT ...", {}, Exception(f'violates "{constraint}"'))
 
-    error = _conflict_from(exc)
+    error = conflict_from(exc)
 
     assert (error.code, error.status_code) == (code, 409)
 
