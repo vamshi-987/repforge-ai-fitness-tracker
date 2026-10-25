@@ -33,9 +33,7 @@ def whoami_route(app: FastAPI) -> None:
 async def _tokens_in_family(sessions: Sessions, family_id: uuid.UUID) -> list[RefreshToken]:
     async with sessions() as session:
         result = await session.scalars(
-            select(RefreshToken)
-            .where(RefreshToken.family_id == family_id)
-            .order_by(RefreshToken.created_at)
+            select(RefreshToken).where(RefreshToken.family_id == family_id)
         )
         return list(result)
 
@@ -269,7 +267,9 @@ async def test_refresh_rotates_the_token(
         session_factory, await _family_of(session_factory, body["user"]["id"])
     )
     assert len(family) == 2
-    first, second = family
+    # now() is fixed within the test's single transaction, so tell them apart by linkage.
+    (first,) = [token for token in family if token.replaced_by is not None]
+    (second,) = [token for token in family if token is not first]
     assert first.revoked_at is not None
     assert first.replaced_by == second.id
     assert second.revoked_at is None

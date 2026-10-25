@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
 from app.core.errors import AppError, AuthError, ConflictError
-from app.db.models import AuthProvider, RefreshToken, User
+from app.db.models import AuthProvider, RefreshToken, User, UserProfile, UserSettings
 from app.schemas.auth import RegisterRequest, TokenPair
 from app.services.oauth import OAuthIdentity
 from app.services.security import (
@@ -67,7 +67,7 @@ def classify_refresh(
     return "ok"
 
 
-def _conflict_from(exc: IntegrityError) -> AppError:
+def conflict_from(exc: IntegrityError) -> AppError:
     message = str(exc.orig)
     if "uq_users_email" in message:
         return ConflictError("email_taken", "An account with this email already exists")
@@ -105,7 +105,10 @@ async def create_user(
     google_sub: str | None = None,
     apple_sub: str | None = None,
 ) -> User:
-    """Insert a user. A unique-constraint race surfaces as a 409, never a 500."""
+    """Insert a user with default profile and settings rows.
+
+    A unique-constraint race surfaces as a 409, never a 500.
+    """
     username = username or await _pick_username(session, email)
     user = User(
         email=email,
@@ -122,7 +125,10 @@ async def create_user(
         await session.flush()
     except IntegrityError as exc:
         await session.rollback()
-        raise _conflict_from(exc) from exc
+        raise conflict_from(exc) from exc
+    # Every account has exactly one profile and one settings row, created with defaults.
+    session.add_all([UserProfile(user_id=user.id), UserSettings(user_id=user.id)])
+    await session.flush()
     return user
 
 

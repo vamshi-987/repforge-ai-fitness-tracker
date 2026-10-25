@@ -118,3 +118,82 @@ The ID token is verified against the provider's JWKS (cached in Redis for 12 h; 
 Account resolution: the provider subject's account → else the account with the same **verified** email, which gets linked → else a new account (`is_new_user: true`).
 
 **200** auth response · **401** `invalid_id_token` | `account_deleted` · **422** `email_required` (new account but no verified email) · **503** `provider_not_configured` | `provider_unavailable` · **429**
+
+---
+
+## Me (the signed-in user)
+
+All `/me` endpoints need `Authorization: Bearer <access_token>`.
+
+PATCH bodies are partial: omitted fields are unchanged, unknown fields are a 422, and an explicit `null` is a 422 except where a field is marked *clearable*.
+
+### `GET /v1/me`
+The account, onboarding profile and app settings in one response, so the app can decide on launch whether to show onboarding.
+
+**200**
+```json
+{
+  "id": "8b0c...", "email": "lifter@example.com", "username": "lifter", "display_name": "Lifter",
+  "avatar_url": null, "is_private": false, "is_pro": false, "auth_provider": "password",
+  "created_at": "2026-10-25T10:00:00Z",
+  "onboarding_complete": true,
+  "profile": {
+    "sex": "female", "birth_date": "1995-03-01", "height_cm": 168.3, "weight_kg": 64.46,
+    "activity_level": "moderate", "goal": "fat_loss", "experience": "beginner",
+    "unit_weight": "kg", "unit_length": "cm", "water_goal_ml": null, "timezone": "Asia/Kolkata",
+    "onboarding_completed_at": "2026-10-25T10:05:00Z"
+  },
+  "settings": {
+    "theme": "system", "default_rest_s": 90, "keep_awake": true, "show_burned_kcal": false,
+    "water_cup_sizes": [250, 500, 750], "water_reminder_every_h": 2,
+    "wake_time": "07:00:00", "sleep_time": "22:00:00", "reminders_enabled": false
+  }
+}
+```
+`profile.weight_kg` is the latest weigh-in (`body_weights`), not a profile column. New accounts start with every profile answer `null`, units `kg`/`cm`, timezone `UTC` and the settings shown above.
+
+### `PATCH /v1/me`
+```json
+{"username": "iron_ann", "display_name": "Ann", "is_private": true}
+```
+**200** the same body as `GET /v1/me` · **409** `username_taken` · **422**
+
+### `PATCH /v1/me/profile`
+Any subset of:
+
+| Field | Type / range |
+|---|---|
+| `sex` | `male` \| `female` (used only for the BMR formula) |
+| `birth_date` | `YYYY-MM-DD`, age 13–100 |
+| `height_cm` | 100–250, stored to 0.1 (rounded half-up) |
+| `weight_kg` | 25–350, rounded to 0.01. Each value **logs a new weigh-in** dated now |
+| `activity_level` | `sedentary` \| `light` \| `moderate` \| `active` \| `very_active` |
+| `goal` | `muscle_gain` \| `fat_loss` \| `maintain` |
+| `experience` | `beginner` \| `intermediate` \| `advanced` |
+| `unit_weight` / `unit_length` | `kg` \| `lb` / `cm` \| `in` (display only; data is always kg/cm) |
+| `water_goal_ml` | 500–10000, *clearable* (`null` = computed goal) |
+| `timezone` | IANA name, e.g. `Asia/Kolkata` |
+| `onboarding_complete` | `true` finishes onboarding (once; later `true`/`false` are ignored) |
+
+**200** the `profile` object · **422** `validation_error`, or `onboarding_incomplete` with the unanswered fields:
+```json
+{"error": {"code": "onboarding_incomplete", "message": "Answer every onboarding question first",
+           "details": {"missing": ["birth_date", "weight_kg"]}}}
+```
+The required answers are `sex`, `birth_date`, `height_cm`, `weight_kg`, `activity_level`, `goal` and `experience`. A request that fails is not partly applied.
+
+### `GET /v1/me/settings`
+**200** the `settings` object.
+
+### `PATCH /v1/me/settings`
+
+| Field | Type / range |
+|---|---|
+| `theme` | `system` \| `light` \| `dark` |
+| `default_rest_s` | 0–900 |
+| `keep_awake`, `show_burned_kcal`, `reminders_enabled` | boolean |
+| `water_cup_sizes` | 1–6 distinct integers, 50–2000 ml (returned sorted) |
+| `water_reminder_every_h` | 1–12 |
+| `wake_time`, `sleep_time` | `HH:MM`; must differ, checked against the stored value when only one is sent |
+
+**200** the `settings` object · **422**
