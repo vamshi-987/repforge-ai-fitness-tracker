@@ -17,7 +17,12 @@ Legend: ✅ merged to main · 🟡 in progress · ⬜ not started
 - ✅ `feat/p1-profile-backend` (also creates `body_weights` early: onboarding logs the first weigh-in; P5 adds its CRUD)
 - ✅ `feat/p1-auth-mobile` (email/password only in the app; Google/Apple buttons need a dev build, backend endpoints are ready)
 - ✅ `feat/p1-onboarding-mobile` (units step first; `lib/units.ts` landed here because onboarding needs it)
-- ⬜ `feat/p1-settings-mobile`
+- ✅ `feat/p1-settings-mobile` (optimistic saves, serialized per section; theme preference drives `useTheme`)
+
+**Phase 1 "done when" (2026-10-25):**
+- ✅ Refresh-token reuse revokes the family: `tests/integration/test_auth_api.py::test_refresh_token_reuse_revokes_the_whole_family`, and replayed by hand against the live API.
+- ✅ Register → onboarding → relaunch stays signed in: covered by mobile tests (`src/stores/__tests__/auth.test.ts` relaunch offline from SecureStore + cached `/me`, `src/__tests__/onboardingStep.test.tsx`) and replayed request by request against the live API. ⚠️ Still to do by hand: the same flow in Expo Go on a phone (not possible from the build machine).
+- ✅ CI green on every Phase 1 branch and on `main`.
 
 ## Phase 2 — Exercise library & red body map
 - ⬜ `feat/p2-exercise-models-seed`
@@ -77,3 +82,5 @@ Legend: ✅ merged to main · 🟡 in progress · ⬜ not started
 - Python dependencies are installed only into `backend/.venv` (no global installs).
 - Dev object storage is SeaweedFS because MinIO stopped publishing Docker images. Prod uses Cloudflare R2.
 - RepForge host ports: API 8010, Postgres 5442, Redis 6389, S3 9010 (defaults clash with other local stacks).
+- Since Phase 1, `make -C backend test` (and `make check`) runs unit + integration tests against the compose stack, because the services coverage gate needs the DB-backed tests. `make -C backend test-unit` is the no-services subset.
+- Google/Apple sign-in: backend done; app buttons wait for an EAS dev build (Expo Go cannot use the native Google SDK, and Apple tokens from Expo Go carry Expo's bundle ID). Set `GOOGLE_CLIENT_IDS` / `APPLE_CLIENT_IDS` to enable the endpoints.

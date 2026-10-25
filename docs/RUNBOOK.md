@@ -62,15 +62,15 @@ make mobile-install   # pnpm install in mobile/
 ```bash
 curl localhost:8010/v1/health          # {"status":"ok","version":"0.1.0"}
 curl localhost:8010/v1/health/ready    # database ok, redis ok
-make check                             # backend lint+types+unit tests, mobile lint+types+tests
-make backend-test-integration          # tests against real postgres/redis/worker
+make check                             # backend lint+types+all tests (needs the stack up), mobile lint+types+tests
+make -C backend test-unit              # fast backend subset that needs no services
 ```
 
 ### 1.6 Run the app
 ```bash
 make mobile-start      # scan the QR code with Expo Go (same Wi-Fi as the Mac)
 ```
-The Home tab should show a green **"API connected · v0.1.0"** badge.
+The app opens on **Log in**. Tap **Create an account**, register, answer the 8 onboarding questions, and you land on Home, which shows a green **"API connected · v0.1.0"** badge. Kill the app and reopen it: you stay signed in, even in airplane mode (tokens are in the Keychain/Keystore and the profile is cached on the device). Log out is in Profile → Settings.
 
 ---
 
@@ -102,7 +102,8 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 | `docker-compose.yml` or `.env` | `make up` | Compose recreates the affected containers |
 | `infra/postgres/init/*.sql` | `make nuke && make up && make migrate` ⚠️ wipes data | Init scripts run only on a fresh volume |
 | `infra/seaweedfs/s3.json` | `docker compose restart s3` | The config is read at startup |
-| `mobile/package.json` / `pnpm-lock.yaml` | `make mobile-install`, then restart `make mobile-start` | New JS packages |
+| `mobile/package.json` / `pnpm-lock.yaml` | `make mobile-install`, then restart `make mobile-start` | New JS packages (Phase 1 added `expo-secure-store`, `expo-localization`) |
+| `.env.example` gained variables (Phase 1: `JWT_SECRET`, `GOOGLE_CLIENT_IDS`, `APPLE_CLIENT_IDS`, `LOGIN_RATE_*`) | Copy the new lines into `.env` if you want non-default values, then `make up` | Defaults work for dev; `make up` recreates containers with the new env |
 | `mobile/src/db/schema.ts` (local SQLite tables) | `cd mobile && pnpm db:generate` and commit the new files in `src/db/migrations/` | The app runs these on launch |
 | `mobile/app.json`, `babel.config.js`, `metro.config.js` | `cd mobile && pnpm start --clear` | Clears Metro's cache |
 | `mobile/.env.local` | `cd mobile && pnpm start --clear` | `EXPO_PUBLIC_*` values are inlined at bundle time |
@@ -135,9 +136,22 @@ cd mobile && pnpm format                  # auto-fix TS formatting
 
 ### Before merging a feature branch
 ```bash
-make check                       # must be green
-make backend-test-integration    # with the stack up
+make up                          # backend tests need postgres + redis + worker
+make check                       # must be green: lint, types, all tests, services coverage >= 95%
 ```
+`make -C backend test-unit` runs only the tests that need no services (quick feedback while coding).
+
+### Auth in development
+```bash
+# Unlock a login lockout (10 attempts per 15 min per IP) after testing wrong passwords
+docker compose exec redis sh -c "redis-cli --scan --pattern 'rl:login:*' | xargs -r redis-cli DEL"
+
+# Try the API by hand
+curl -s -XPOST localhost:8010/v1/auth/register -H 'content-type: application/json' \
+  -d '{"email":"me@example.com","password":"long-enough"}'
+```
+- Google / Apple sign-in endpoints answer **503 `provider_not_configured`** until `GOOGLE_CLIENT_IDS` / `APPLE_CLIENT_IDS` are set in `.env` (JSON lists of client IDs / bundle IDs). The app's buttons need an EAS dev build (Phase 9).
+- In prod, `JWT_SECRET` **must** be a random 32+ character value; the API refuses to start with the dev default when `ENVIRONMENT=prod`. Generate one with `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Changing it signs every user out of their *access* tokens; refresh tokens keep working.
 
 ---
 
@@ -152,5 +166,9 @@ make backend-test-integration    # with the stack up
 | `pnpm lint` fails on `tsconfig.json` after `expo start` | Expo rewrote the file. Run `cd mobile && pnpm prettier --write tsconfig.json` |
 | `make backend-venv` can't find `python3.12` | `pyenv install 3.12.3`, or `make backend-venv PYTHON=/path/to/python3.12` |
 | Integration tests skip with "TEST_DATABASE_URL is not set" | `.env` is missing. Run `cp .env.example .env` |
+| `make check` fails with connection errors to `localhost:5442` | The backend tests need the stack: run `make up` first |
+| App says **"Too many attempts. Try again in N min."** | The login rate limit tripped. Wait, or clear it (see *Auth in development*) |
+| App shows **"Can't reach RepForge"** right after signing in | First launch on this device and the API is unreachable, so the profile has never been cached. Fix the connection and tap *Try again* |
+| App signs you out unexpectedly | The refresh token was rejected (expired after 30 days unused, or reused). Reuse can happen if the app was killed in the instant between the server rotating the token and the phone saving it; sign in again |
 | Celery task changes have no effect | `docker compose restart worker beat` |
 | Database is in a weird state locally | `make nuke && make up && make migrate` ⚠️ wipes local data |
