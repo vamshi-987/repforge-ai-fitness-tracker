@@ -1,5 +1,5 @@
-import { Screen } from '@/components/Screen';
+import { AuthForm } from '@/components/AuthForm';
 
 export default function LoginScreen() {
-  return <Screen title="Log in" subtitle="Email and Google/Apple sign-in arrive in Phase 1." />;
+  return <AuthForm mode="login" />;
 }
