@@ -42,3 +42,9 @@ pnpm-debug.*
 
 # Docker volumes (local)
 .data/
+
+# Local planning and working notes (kept on disk, not in the repo)
+/CLAUDE.md
+/PLAN.md
+/docs/IMPLEMENTATION_NOTES.md
+/docs/PROGRESS.md

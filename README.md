@@ -15,9 +15,7 @@ An offline-first workout tracker with AI-assisted nutrition and coaching.
 ```
 backend/   FastAPI API, Celery workers, Alembic migrations, tests
 mobile/    Expo app
-docs/      api.md, architecture.md, PROGRESS.md, RUNBOOK.md, IMPLEMENTATION_NOTES.md
-PLAN.md    phased build plan (phases → feature branches)
-CLAUDE.md  product spec and engineering rules
+docs/      api.md, architecture.md, RUNBOOK.md
 ```
 
 ## Prerequisites
@@ -29,7 +27,7 @@ CLAUDE.md  product spec and engineering rules
 
 ## Quick start
 
-Full first-time setup, daily start, and what to run after each kind of change: [docs/RUNBOOK.md](docs/RUNBOOK.md). Design decisions and trade-offs by phase: [docs/IMPLEMENTATION_NOTES.md](docs/IMPLEMENTATION_NOTES.md).
+Full first-time setup, daily start, and what to run after each kind of change: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ```bash
 cp .env.example .env
@@ -54,7 +52,7 @@ Host ports (set in `.env`): API 8010, Postgres 5442, Redis 6389, S3 9010. They a
 
 ## Workflow
 
-Every feature is built on `feat/pN-<name>`, checked locally (`make backend-check`, `pnpm lint typecheck test`), merged into `main` with `--no-ff`, and pushed. Progress is tracked in [docs/PROGRESS.md](docs/PROGRESS.md).
+Every feature is built on `feat/pN-<name>`, checked locally (`make backend-check`, `pnpm lint typecheck test`), merged into `main` with `--no-ff`, and pushed.
 
 ## Attributions
 

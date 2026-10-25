@@ -1,6 +1,6 @@
 # RepForge Architecture
 
-CLAUDE.md §3 is the canonical overview. This file records how the pieces are wired in the repository.
+How the pieces of RepForge are wired together in this repository.
 
 ## Runtime topology (dev: `docker compose up`)
 
