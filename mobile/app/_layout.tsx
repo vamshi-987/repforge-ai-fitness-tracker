@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 
 import { createQueryClient } from '@/api/queryClient';
+import { destination } from '@/auth/destination';
 import { DatabaseProvider } from '@/db/DatabaseProvider';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/theme/useTheme';
@@ -12,8 +13,7 @@ export default function RootLayout() {
   const [queryClient] = useState(createQueryClient);
   const theme = useTheme();
   const bootstrap = useAuth((state) => state.bootstrap);
-  const signedIn = useAuth((state) => state.status === 'signedIn');
-  const hasProfile = useAuth((state) => state.me !== null);
+  const where = useAuth((state) => destination(state.status, state.me, state.meStatus));
 
   useEffect(() => {
     void bootstrap();
@@ -40,10 +40,11 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" />
-          <Stack.Protected guard={signedIn && hasProfile}>
+          <Stack.Protected guard={where === 'app'}>
             <Stack.Screen name="(tabs)" />
           </Stack.Protected>
-          <Stack.Protected guard={!signedIn}>
+          {/* Login/register and onboarding; app/(auth)/_layout.tsx guards each part. */}
+          <Stack.Protected guard={where === 'login' || where === 'onboarding'}>
             <Stack.Screen name="(auth)" />
           </Stack.Protected>
         </Stack>
