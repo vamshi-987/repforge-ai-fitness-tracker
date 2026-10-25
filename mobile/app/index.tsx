@@ -19,6 +19,7 @@ export default function Index() {
     case 'profileUnavailable':
       return <ProfileUnavailable />;
     case 'onboarding':
+      return <Redirect href="/onboarding/units" />;
     case 'app':
       return <Redirect href="/home" />;
   }
