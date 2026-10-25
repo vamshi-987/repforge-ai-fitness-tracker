@@ -15,7 +15,7 @@ Legend: ✅ merged to main · 🟡 in progress · ⬜ not started
 ## Phase 1 — Auth, profile, onboarding, settings
 - ✅ `feat/p1-auth-backend` (argon2id, rotating refresh families with reuse detection, Google/Apple JWKS verify, Redis login rate limit)
 - ✅ `feat/p1-profile-backend` (also creates `body_weights` early: onboarding logs the first weigh-in; P5 adds its CRUD)
-- ⬜ `feat/p1-auth-mobile`
+- ✅ `feat/p1-auth-mobile` (email/password only in the app; Google/Apple buttons need a dev build, backend endpoints are ready)
 - ⬜ `feat/p1-onboarding-mobile`
 - ⬜ `feat/p1-settings-mobile`
 
