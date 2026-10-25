@@ -13,7 +13,7 @@ Legend: ✅ merged to main · 🟡 in progress · ⬜ not started
 - ✅ `feat/p0-ci-dispatch` (manual CI trigger, CI badges, repo name `repforge-ai-fitness-tracker`)
 
 ## Phase 1 — Auth, profile, onboarding, settings
-- ⬜ `feat/p1-auth-backend`
+- ✅ `feat/p1-auth-backend` (argon2id, rotating refresh families with reuse detection, Google/Apple JWKS verify, Redis login rate limit)
 - ⬜ `feat/p1-profile-backend`
 - ⬜ `feat/p1-auth-mobile`
 - ⬜ `feat/p1-onboarding-mobile`
