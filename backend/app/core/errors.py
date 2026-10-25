@@ -20,17 +20,42 @@ class AppError(Exception):
         message: str,
         status_code: int = 400,
         details: Any = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(message)
         self.code = code
         self.message = message
         self.status_code = status_code
         self.details = details
+        self.headers = headers
 
 
 class NotFoundError(AppError):
     def __init__(self, message: str = "Not found", details: Any = None) -> None:
         super().__init__("not_found", message, 404, details)
+
+
+class ConflictError(AppError):
+    def __init__(self, code: str, message: str, details: Any = None) -> None:
+        super().__init__(code, message, 409, details)
+
+
+class AuthError(AppError):
+    """401 with a `WWW-Authenticate` header, as RFC 6750 requires for bearer tokens."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(code, message, 401, headers={"WWW-Authenticate": "Bearer"})
+
+
+class RateLimitedError(AppError):
+    def __init__(self, retry_after_s: int) -> None:
+        super().__init__(
+            "rate_limited",
+            "Too many attempts. Try again later.",
+            429,
+            {"retry_after_s": retry_after_s},
+            headers={"Retry-After": str(retry_after_s)},
+        )
 
 
 def error_body(code: str, message: str, details: Any = None) -> dict[str, Any]:
@@ -49,6 +74,7 @@ async def app_error_handler(_: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
         content=jsonable_encoder(error_body(exc.code, exc.message, exc.details)),
+        headers=exc.headers,
     )
 
 

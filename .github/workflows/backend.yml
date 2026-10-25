@@ -60,14 +60,11 @@ jobs:
       - name: Lint (ruff + mypy)
         run: make lint
 
-      - name: Unit tests (services coverage >= 95%)
-        run: make test
-
       - name: Start a Celery worker for integration tests
         run: .venv/bin/celery -A app.workers.celery_app worker --loglevel WARNING --concurrency 1 --detach --logfile /tmp/celery.log --pidfile /tmp/celery.pid
 
-      - name: Integration tests (postgres + redis + worker)
-        run: make test-integration
+      - name: Tests, unit + integration (services coverage >= 95%)
+        run: make test
 
       - name: Celery log on failure
         if: failure()
