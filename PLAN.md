@@ -143,7 +143,7 @@ git switch main && git merge --no-ff feat/pN-<name> && git push origin main
 - GitHub Actions also runs on every push, as a second safety net.
 
 ## How to run each phase (paste into a new chat window)
-> Read CLAUDE.md, PLAN.md and docs/PROGRESS.md. Execute **Phase N** only. For each feature branch listed for Phase N, in order: branch from main, implement fully (complete files, tests, docs/api.md entries, migrations), run the checks, merge `--no-ff` into main, push the branch and main, and tick it in PROGRESS.md. At the end, run the phase's "Done when" checks and report.
+> Read CLAUDE.md, PLAN.md and docs/PROGRESS.md. Execute **Phase N** only. For each feature branch listed for Phase N, in order: branch from main, implement fully (complete files, tests, docs/api.md entries, migrations), run the checks, merge `--no-ff` into main, push the branch and main, and tick it in PROGRESS.md. When the phase is done, write its section in docs/IMPLEMENTATION_NOTES.md (what was built, how, why, trade-offs, problems hit) and update docs/RUNBOOK.md if setup or run steps changed. At the end, run the phase's "Done when" checks and report.
 
 ---
 

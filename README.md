@@ -13,7 +13,7 @@ An offline-first workout tracker with AI-assisted nutrition and coaching.
 ```
 backend/   FastAPI API, Celery workers, Alembic migrations, tests
 mobile/    Expo app
-docs/      api.md, architecture.md, PROGRESS.md
+docs/      api.md, architecture.md, PROGRESS.md, RUNBOOK.md, IMPLEMENTATION_NOTES.md
 PLAN.md    phased build plan (phases → feature branches)
 CLAUDE.md  product spec and engineering rules
 ```
@@ -26,6 +26,8 @@ CLAUDE.md  product spec and engineering rules
 - Expo Go on your phone
 
 ## Quick start
+
+Full first-time setup, daily start, and what to run after each kind of change: [docs/RUNBOOK.md](docs/RUNBOOK.md). Design decisions and trade-offs by phase: [docs/IMPLEMENTATION_NOTES.md](docs/IMPLEMENTATION_NOTES.md).
 
 ```bash
 cp .env.example .env
