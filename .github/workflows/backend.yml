@@ -1,6 +1,7 @@
 name: backend
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, "feat/**"]
     paths: ["backend/**", "infra/**", ".github/workflows/backend.yml"]

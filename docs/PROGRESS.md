@@ -10,6 +10,7 @@ Legend: ✅ merged to main · 🟡 in progress · ⬜ not started
 - ✅ `feat/p0-mobile-scaffold`
 - ✅ `feat/p0-ci`
 - ✅ `feat/p0-docs` (RUNBOOK.md, IMPLEMENTATION_NOTES.md; added after the plan was written)
+- ✅ `feat/p0-ci-dispatch` (manual CI trigger, CI badges, repo name `repforge-ai-fitness-tracker`)
 
 ## Phase 1 — Auth, profile, onboarding, settings
 - ⬜ `feat/p1-auth-backend`
