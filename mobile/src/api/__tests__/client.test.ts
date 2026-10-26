@@ -1,4 +1,6 @@
-import { ApiError, apiRequest } from '../client';
+import { fetchCalls, jsonResponse } from '@/test/helpers';
+
+import { ApiError, apiRequest, apiRequestFull } from '../client';
 
 function mockFetchOnce(status: number, body: unknown, raw = false) {
   const text = raw ? String(body) : body === null ? '' : JSON.stringify(body);
@@ -76,5 +78,29 @@ describe('apiRequest', () => {
       code: 'network_error',
       message: 'Network request failed',
     });
+  });
+});
+
+describe('apiRequestFull', () => {
+  it('returns the ETag with the body', async () => {
+    globalThis.fetch = jest
+      .fn()
+      .mockResolvedValue(jsonResponse(200, { ok: true }, { ETag: 'W/"abc"' }));
+
+    await expect(apiRequestFull('/exercises')).resolves.toEqual({
+      status: 200,
+      data: { ok: true },
+      etag: 'W/"abc"',
+    });
+  });
+
+  it('resolves 304 Not Modified with no data', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(jsonResponse(304, null, { ETag: 'W/"abc"' }));
+    globalThis.fetch = fetchMock;
+
+    const result = await apiRequestFull('/exercises', { headers: { 'If-None-Match': 'W/"abc"' } });
+
+    expect(result).toEqual({ status: 304, data: null, etag: 'W/"abc"' });
+    expect(fetchCalls(fetchMock)[0]?.init.headers).toMatchObject({ 'If-None-Match': 'W/"abc"' });
   });
 });

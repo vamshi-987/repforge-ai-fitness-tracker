@@ -9,10 +9,15 @@ export function mockStores(): { secure: Map<string, string>; kv: Map<string, str
   ).__mockStores;
 }
 
-export function jsonResponse(status: number, body: unknown): Response {
+export function jsonResponse(
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
+    headers: new Headers(headers),
     text: () => Promise.resolve(body === null ? '' : JSON.stringify(body)),
   } as Response;
 }

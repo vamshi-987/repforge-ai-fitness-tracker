@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Text, type ColorValue } from 'react-native';
 
+import { useLibrarySync } from '@/exercises/library';
 import { useTheme } from '@/theme/useTheme';
 
 // Text glyphs keep the scaffold free of icon dependencies; a proper icon set lands with the UI work.
@@ -10,6 +11,8 @@ function TabGlyph({ glyph, color }: { glyph: string; color: ColorValue }) {
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  // Keep the offline exercise library fresh (a few empty 304s when nothing changed).
+  useLibrarySync();
 
   return (
     <Tabs

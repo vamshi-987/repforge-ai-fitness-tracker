@@ -1,4 +1,10 @@
-import { ApiError, apiRequest, type RequestOptions } from '@/api/client';
+import {
+  ApiError,
+  apiRequest,
+  apiRequestFull,
+  type ApiResponse,
+  type RequestOptions,
+} from '@/api/client';
 import type { TokenPair } from '@/api/types';
 
 import {
@@ -113,9 +119,14 @@ export class AuthSession {
   }
 
   async request<T>(path: string, options: AuthedOptions = {}): Promise<T> {
+    return (await this.requestFull<T>(path, options)).data as T;
+  }
+
+  /** Like `request`, but also returns the status and ETag (304 resolves with `data: null`). */
+  async requestFull<T>(path: string, options: AuthedOptions = {}): Promise<ApiResponse<T>> {
     const token = await this.validAccessToken();
     try {
-      return await apiRequest<T>(path, { ...options, token });
+      return await apiRequestFull<T>(path, { ...options, token });
     } catch (error) {
       if (!(error instanceof ApiError) || error.status !== 401 || !this.tokens) throw error;
       // Another request may have refreshed while this one was in flight.
@@ -123,7 +134,7 @@ export class AuthSession {
         this.tokens.accessToken !== token
           ? this.tokens.accessToken
           : (await this.refresh()).accessToken;
-      return apiRequest<T>(path, { ...options, token: latest });
+      return apiRequestFull<T>(path, { ...options, token: latest });
     }
   }
 }

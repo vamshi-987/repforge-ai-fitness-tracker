@@ -120,6 +120,7 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 - To roll back one step (dev only): `docker compose exec api alembic downgrade -1`.
 
 ### Mobile local database
+- Phase 2 added the offline exercise library (`muscles`, `equipment`, `exercises`). The app downloads it the first time it opens online after sign-in (Workout → Exercise library shows "Downloading…"), then only revalidates. Run `make seed` first, or the server has no library to send.
 - The phone's SQLite database is migrated automatically when the app launches (`DatabaseProvider`).
 - To start fresh on the device, delete the app's data: long-press Expo Go → App info → Clear storage (Android), or reinstall Expo Go (iOS).
 

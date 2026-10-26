@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main, "feat/**"]
-    paths: ["mobile/**", ".github/workflows/mobile.yml"]
+    paths: ["mobile/**", "backend/app/services/exercise_search.py", ".github/workflows/mobile.yml"]
   pull_request:
-    paths: ["mobile/**", ".github/workflows/mobile.yml"]
+    paths: ["mobile/**", "backend/app/services/exercise_search.py", ".github/workflows/mobile.yml"]
 
 concurrency:
   group: mobile-${{ github.ref }}
