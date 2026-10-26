@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: env up down nuke logs ps migrate backend-venv backend-lint backend-test backend-check \
+.PHONY: env up down nuke logs ps migrate seed backend-venv backend-lint backend-test backend-check \
         backend-test-integration mobile-install mobile-check mobile-start check
 
 env:
@@ -25,6 +25,10 @@ ps:
 
 migrate:
 	$(COMPOSE) exec api alembic upgrade head
+
+# Load or update the exercise library; safe to run every time.
+seed:
+	$(COMPOSE) exec api python -m app.commands.seed
 
 ## Backend (runs from backend/.venv) ------------------------------------------
 backend-venv:

@@ -64,6 +64,14 @@ Errors are raised as `AppError(code, message, status_code, details)` and rendere
 - **Backend:** `services/security.py` (argon2id, JWT, token hashing), `services/auth.py` (flows, rotation), `services/oauth.py` (Google/Apple JWKS, cached `jwks:{provider}` 12 h), `services/rate_limit.py` (sliding window, `rl:login:{ip}`). `deps.CurrentUser` loads the user for protected routes.
 - **Mobile:** `src/auth/session.ts` keeps the tokens (SecureStore) and does single-flight refresh. `src/stores/auth.ts` holds the auth status and the cached `/me` (expo-sqlite kv-store). `src/auth/destination.ts` decides login → onboarding → app, and `Stack.Protected` guards in `app/_layout.tsx` and `app/(auth)/_layout.tsx` enforce it, with `app/index.tsx` as the anchor that redirects.
 
+## Exercise library (Phase 2)
+
+- **Tables:** `muscles` (20, each with the `body_map_key` of its SVG region), `equipment` (14, with `increment_kg` for the overload coach; NULL = progress by reps), `exercises` (library rows have `owner_user_id` NULL; custom rows belong to a user), and `exercise_secondary_muscles`. A GIN trigram index on `exercises.name` serves fuzzy search.
+- **Seed:** `backend/seeds/{muscles,equipment,exercises}.json`, written for RepForge (names and muscle targets are facts; instructions are our own words). `python -m app.commands.seed` (`make seed`) validates the files, then upserts in one transaction.
+  - IDs are **UUIDv5 of the slug** (`services/library_seed.library_id`), so every machine and every run produces the same IDs, and phones, routines and workouts can reference library exercises safely.
+  - `INSERT … ON CONFLICT (id) DO UPDATE … WHERE (columns) IS DISTINCT FROM (excluded)`: unchanged rows are not rewritten, so `updated_at` and `version` only move when the library really changed. `RETURNING xmax = 0` tells inserts from updates.
+  - Library exercises are never deleted, because history points at them: one that leaves the seed is archived (`is_archived`), and restored if it comes back. A seed that changes an existing exercise's `type` is refused.
+
 ## Sync (Phase 4)
 
 Outbox on device → `POST /v1/sync/push`. Pull with `GET /v1/sync/pull?since=<change_seq>`. Writes are idempotent by client UUID, and conflicts resolve last-write-wins per row. Finished workouts are immutable after 24 h.

@@ -27,6 +27,7 @@ COPY --from=builder /opt/venv /opt/venv
 WORKDIR /app
 COPY alembic.ini ./
 COPY alembic ./alembic
+COPY seeds ./seeds
 COPY app ./app
 
 USER app

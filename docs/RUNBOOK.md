@@ -49,6 +49,7 @@ Use `http://localhost:8010` only for an iOS simulator running on the same Mac.
 ```bash
 make up         # builds the backend image, starts all services, waits until healthy
 make migrate    # creates/updates the database schema (Alembic)
+make seed       # loads the exercise library (422 exercises, 20 muscles, 14 equipment types)
 make ps         # all services "healthy"; s3-init "Exited (0)" is expected
 ```
 
@@ -79,6 +80,7 @@ The app opens on **Log in**. Tap **Create an account**, register, answer the 8 o
 ```bash
 make up           # start the stack (fast; rebuilds only if something changed)
 make migrate      # safe to run every time; does nothing if already up to date
+make seed         # also safe every time; rewrites only exercises whose seed data changed
 make mobile-start # run the app
 ```
 When you're done:
@@ -100,6 +102,7 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 | `backend/pyproject.toml` (dependencies) | `make up` (rebuilds the image) **and** `make backend-venv` (updates the local venv) | Dependencies are baked into the image |
 | `backend/Dockerfile` | `make up` | Rebuilds the image |
 | `docker-compose.yml` or `.env` | `make up` | Compose recreates the affected containers |
+| `backend/seeds/*.json` (exercise library) | `make seed` | Upserts the library; unchanged rows are not touched, removed exercises are archived. A seed that changes an existing exercise's `type` is refused |
 | `infra/postgres/init/*.sql` | `make nuke && make up && make migrate` ⚠️ wipes data | Init scripts run only on a fresh volume |
 | `infra/seaweedfs/s3.json` | `docker compose restart s3` | The config is read at startup |
 | `mobile/package.json` / `pnpm-lock.yaml` | `make mobile-install`, then restart `make mobile-start` | New JS packages (Phase 1 added `expo-secure-store`, `expo-localization`) |
@@ -107,7 +110,7 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 | `mobile/src/db/schema.ts` (local SQLite tables) | `cd mobile && pnpm db:generate` and commit the new files in `src/db/migrations/` | The app runs these on launch |
 | `mobile/app.json`, `babel.config.js`, `metro.config.js` | `cd mobile && pnpm start --clear` | Clears Metro's cache |
 | `mobile/.env.local` | `cd mobile && pnpm start --clear` | `EXPO_PUBLIC_*` values are inlined at bundle time |
-| You want a clean database | `make nuke && make up && make migrate` ⚠️ wipes all local data | |
+| You want a clean database | `make nuke && make up && make migrate && make seed` ⚠️ wipes all local data | |
 
 ### Database migrations: the rules
 - Every schema change is a new Alembic migration. **Never edit a migration that is already merged to `main`.** Add a new one instead.
@@ -171,4 +174,5 @@ curl -s -XPOST localhost:8010/v1/auth/register -H 'content-type: application/jso
 | App shows **"Can't reach RepForge"** right after signing in | First launch on this device and the API is unreachable, so the profile has never been cached. Fix the connection and tap *Try again* |
 | App signs you out unexpectedly | The refresh token was rejected (expired after 30 days unused, or reused). Reuse can happen if the app was killed in the instant between the server rotating the token and the phone saving it; sign in again |
 | Celery task changes have no effect | `docker compose restart worker beat` |
-| Database is in a weird state locally | `make nuke && make up && make migrate` ⚠️ wipes local data |
+| Database is in a weird state locally | `make nuke && make up && make migrate && make seed` ⚠️ wipes local data |
+| `make seed` says `seed refused: exercise type is immutable` | An edit to `backend/seeds/exercises.json` changed the `type` of an exercise that already exists. Workout history depends on the type, so add a new exercise (new slug) instead |
