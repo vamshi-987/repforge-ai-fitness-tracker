@@ -88,3 +88,66 @@ export type ProfileUpdate = Partial<
 };
 
 export type SettingsUpdate = Partial<Settings>;
+
+// --- exercise library (docs/api.md § Exercises) -----------------------------------------
+
+export type ExerciseType =
+  | 'weight_reps'
+  | 'bodyweight_reps'
+  | 'weighted_bodyweight'
+  | 'assisted_bodyweight'
+  | 'duration'
+  | 'distance_duration';
+
+export interface Muscle {
+  id: string;
+  slug: string;
+  name: string;
+  /** Region id in the body map (src/bodymap/regions.ts). */
+  body_map_key: string;
+}
+
+export interface Equipment {
+  id: string;
+  slug: string;
+  name: string;
+  /** Smallest load step; null = progress by reps. */
+  increment_kg: number | null;
+}
+
+export interface Exercise {
+  id: string;
+  name: string;
+  type: ExerciseType;
+  /** Slugs into Equipment / Muscle. */
+  equipment: string;
+  primary_muscle: string;
+  secondary_muscles: string[];
+  instructions: string[];
+  media_video_url: string | null;
+  media_thumb_url: string | null;
+  media_license: string | null;
+  is_custom: boolean;
+  is_archived: boolean;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExercisePage {
+  items: Exercise[];
+  next_cursor: string | null;
+}
+
+export interface ExerciseCreate {
+  id?: string;
+  name: string;
+  type: ExerciseType;
+  equipment: string;
+  primary_muscle: string;
+  secondary_muscles: string[];
+  instructions: string[];
+}
+
+/** PATCH body; `type` may only be sent unchanged (it is immutable after save). */
+export type ExerciseUpdate = Partial<Omit<ExerciseCreate, 'id'>>;

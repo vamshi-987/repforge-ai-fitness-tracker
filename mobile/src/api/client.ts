@@ -53,12 +53,23 @@ async function parseJson(response: Response): Promise<unknown> {
   }
 }
 
+export interface ApiResponse<T> {
+  status: number;
+  /** null for 304 Not Modified (and empty bodies). */
+  data: T | null;
+  etag: string | null;
+}
+
 /**
- * Fetch wrapper for the RepForge API. Resolves with the parsed JSON body (typed by the caller)
- * and rejects with ApiError for HTTP errors (code from the envelope) and network failures
- * (code "network_error", status 0).
+ * Fetch wrapper for the RepForge API. Resolves with the status, the parsed JSON body (typed by
+ * the caller) and the ETag; 304 Not Modified resolves with `data: null`. Rejects with ApiError
+ * for HTTP errors (code from the envelope) and network failures (code "network_error",
+ * status 0).
  */
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function apiRequestFull<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<ApiResponse<T>> {
   const { method = 'GET', body, token, headers = {}, signal, baseUrl = apiBaseUrl() } = options;
 
   const finalHeaders: Record<string, string> = { Accept: 'application/json', ...headers };
@@ -78,6 +89,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     throw new ApiError(0, 'network_error', message);
   }
 
+  // Test doubles often build a bare object without headers.
+  const etag = response.headers?.get('ETag') ?? null;
+  if (response.status === 304) return { status: 304, data: null, etag };
+
   const payload = await parseJson(response);
   if (!response.ok) {
     if (isErrorEnvelope(payload)) {
@@ -86,5 +101,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
     throw new ApiError(response.status, 'http_error', `Request failed with ${response.status}`);
   }
-  return payload as T;
+  return { status: response.status, data: payload as T | null, etag };
+}
+
+/** `apiRequestFull` for callers that only want the body. */
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return (await apiRequestFull<T>(path, options)).data as T;
 }
