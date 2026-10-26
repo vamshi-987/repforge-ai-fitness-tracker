@@ -1,0 +1,18 @@
+{
+  "equipment": [
+    { "slug": "barbell", "name": "Barbell", "increment_kg": 2.5 },
+    { "slug": "dumbbell", "name": "Dumbbell", "increment_kg": 2.0 },
+    { "slug": "kettlebell", "name": "Kettlebell", "increment_kg": 4.0 },
+    { "slug": "machine", "name": "Machine", "increment_kg": 5.0 },
+    { "slug": "cable", "name": "Cable", "increment_kg": 2.5 },
+    { "slug": "smith_machine", "name": "Smith Machine", "increment_kg": 2.5 },
+    { "slug": "ez_bar", "name": "EZ Bar", "increment_kg": 2.5 },
+    { "slug": "trap_bar", "name": "Trap Bar", "increment_kg": 2.5 },
+    { "slug": "plate", "name": "Plate", "increment_kg": 2.5 },
+    { "slug": "medicine_ball", "name": "Medicine Ball", "increment_kg": 1.0 },
+    { "slug": "bodyweight", "name": "Bodyweight", "increment_kg": null },
+    { "slug": "band", "name": "Resistance Band", "increment_kg": null },
+    { "slug": "suspension", "name": "Suspension Trainer", "increment_kg": null },
+    { "slug": "other", "name": "Other", "increment_kg": null }
+  ]
+}

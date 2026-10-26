@@ -33,6 +33,7 @@ Full first-time setup, daily start, and what to run after each kind of change: [
 cp .env.example .env
 make up            # postgres, redis, s3 (SeaweedFS), api, worker, beat
 make migrate       # run Alembic migrations inside the api container
+make seed          # load the exercise library (idempotent)
 curl localhost:8010/v1/health
 
 make backend-venv  # create backend/.venv and install deps (for local lint/test)

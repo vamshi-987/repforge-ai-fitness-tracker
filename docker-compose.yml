@@ -17,6 +17,7 @@ x-backend: &backend
     # Live code for --reload; the image still works without these mounts.
     - ./backend/app:/app/app
     - ./backend/alembic:/app/alembic
+    - ./backend/seeds:/app/seeds
   depends_on:
     postgres:
       condition: service_healthy

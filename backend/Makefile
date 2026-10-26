@@ -4,7 +4,7 @@ VENV   ?= .venv
 BIN    := $(VENV)/bin
 SERVICES_COVERAGE ?= 95
 
-.PHONY: venv lint format test test-unit test-integration check migrate revision run
+.PHONY: venv lint format test test-unit test-integration check migrate seed revision run
 
 venv:
 	$(PYTHON) -m venv $(VENV)
@@ -38,6 +38,10 @@ check: lint test
 
 migrate:
 	$(BIN)/alembic upgrade head
+
+# Load or update the exercise library (idempotent).
+seed:
+	$(BIN)/python -m app.commands.seed
 
 revision:
 	@test -n "$(m)" || (echo 'usage: make revision m="describe change"' && exit 1)

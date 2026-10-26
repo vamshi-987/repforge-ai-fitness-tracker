@@ -3,6 +3,13 @@
 from app.db.base import Base
 from app.db.models.auth import RefreshToken
 from app.db.models.body import BodyWeight, WeightSource
+from app.db.models.exercise import (
+    Equipment,
+    Exercise,
+    ExerciseType,
+    Muscle,
+    exercise_secondary_muscles,
+)
 from app.db.models.user import (
     ActivityLevel,
     AuthProvider,
@@ -22,9 +29,13 @@ __all__ = [
     "AuthProvider",
     "Base",
     "BodyWeight",
+    "Equipment",
+    "Exercise",
+    "ExerciseType",
     "Experience",
     "Goal",
     "LengthUnit",
+    "Muscle",
     "RefreshToken",
     "Sex",
     "Theme",
@@ -33,4 +44,5 @@ __all__ = [
     "UserSettings",
     "WeightSource",
     "WeightUnit",
+    "exercise_secondary_muscles",
 ]
