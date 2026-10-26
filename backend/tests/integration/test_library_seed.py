@@ -4,12 +4,22 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from sqlalchemy import func, select
+from fakeredis import FakeAsyncRedis
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
 from app.commands.seed import run
-from app.db.models import AuthProvider, Exercise, ExerciseType, Muscle, User
+from app.db.models import (
+    AuthProvider,
+    Equipment,
+    Exercise,
+    ExerciseType,
+    Muscle,
+    User,
+    exercise_secondary_muscles,
+)
+from app.services.exercises import LIBRARY_VERSION_KEY
 from app.services.library_seed import (
     LibrarySeed,
     SeedCounts,
@@ -55,6 +65,16 @@ BASE: dict[str, Any] = {
     ],
 }
 BENCH = library_id("exercise", "bench-press-barbell")
+
+
+@pytest.fixture(autouse=True)
+async def empty_library(session_factory: Sessions) -> None:
+    """Start from no library at all (another fixture may have committed one)."""
+    async with session_factory() as session:
+        await session.execute(delete(exercise_secondary_muscles))
+        for model in (Exercise, Muscle, Equipment):
+            await session.execute(delete(model))
+        await session.commit()
 
 
 def seed_data() -> dict[str, Any]:
@@ -230,12 +250,19 @@ async def test_full_library_loads_and_bench_search_uses_trigrams(
     assert {m.body_map_key for m in bench.secondary_muscles} == {"front_delts", "triceps"}
 
 
-async def test_seed_command_runs_from_a_directory(
-    session_factory: Sessions, tmp_path: Path
+async def test_seed_command_busts_the_library_cache_only_on_change(
+    session_factory: Sessions, fake_redis: FakeAsyncRedis, tmp_path: Path
 ) -> None:
     for name in ("muscles", "equipment", "exercises"):
         (tmp_path / f"{name}.json").write_text(json.dumps({name: BASE[name]}))
+    await fake_redis.set(LIBRARY_VERSION_KEY, "old")
 
-    report = await run(session_factory, tmp_path)
+    report = await run(session_factory, fake_redis, tmp_path)
 
     assert report.exercises == SeedCounts(inserted=2)
+    assert await fake_redis.get(LIBRARY_VERSION_KEY) is None
+
+    await fake_redis.set(LIBRARY_VERSION_KEY, "current")
+    await run(session_factory, fake_redis, tmp_path)
+
+    assert await fake_redis.get(LIBRARY_VERSION_KEY) == "current"

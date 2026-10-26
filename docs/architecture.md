@@ -35,7 +35,8 @@ Errors are raised as `AppError(code, message, status_code, details)` and rendere
 
 | Key | TTL | Purpose |
 |---|---|---|
-| `exlib:{library_version}:{filters_hash}` | 1 h | Exercise library list (plus ETag) |
+| `exlib:version` | 5 min | Exercise library version; deleted by `make seed` |
+| `exlib:{version}:all` · `exlib:{version}:q:{sha}` | 1 h | Whole library · matching IDs for one search |
 | `foodsearch:{source}:{q_norm}` | 7 d | External food search results |
 | `off:barcode:{code}` | 30 d (1 d negative) | Open Food Facts barcodes |
 | `ai:text:{sha256}` | 24 h | Free-text food parse |
@@ -71,6 +72,12 @@ Errors are raised as `AppError(code, message, status_code, details)` and rendere
   - IDs are **UUIDv5 of the slug** (`services/library_seed.library_id`), so every machine and every run produces the same IDs, and phones, routines and workouts can reference library exercises safely.
   - `INSERT … ON CONFLICT (id) DO UPDATE … WHERE (columns) IS DISTINCT FROM (excluded)`: unchanged rows are not rewritten, so `updated_at` and `version` only move when the library really changed. `RETURNING xmax = 0` tells inserts from updates.
   - Library exercises are never deleted, because history points at them: one that leaves the seed is archived (`is_archived`), and restored if it comes back. A seed that changes an existing exercise's `type` is refused.
+- **API** (`services/exercises.py`, `routers/exercises.py`): `GET /exercises` merges the library (cached) with the caller's custom exercises (read live, they change often and are few), ranks them together and paginates in memory with a keyset cursor `(−score, name, id)`.
+  - **Library version** = hash of `count` and `max(updated_at)` over library rows, kept in Redis `exlib:version` (5 min). The seed deletes that key after a change, so the version moves at once. Every library cache key contains the version, so old entries are simply never read again and expire on their own.
+  - `exlib:{version}:all` holds the whole library as JSON (1 h). Muscle and equipment filters run in Python over it. `exlib:{version}:q:{sha}` holds only matching IDs and scores for one search text (1 h), so free-text searches cost little Redis memory.
+  - Search runs in Postgres: names containing every word (`ILIKE`, using the trigram index) or fuzzy matches (`name %> q`, word similarity ≥ 0.6). Score = 2 for a prefix match, 1 for contains-all, plus `word_similarity`.
+  - **ETag** = hash(library version, the user's custom-exercise stamp (`count`, `max(updated_at)`), filters, cursor, limit). `If-None-Match` → 304 before any listing work. `Cache-Control: private, no-cache` (not `max-age`), so a just-created custom exercise is never hidden by a stale HTTP cache.
+  - Redis errors are logged and ignored: the API answers from Postgres, just slower.
 
 ## Sync (Phase 4)
 

@@ -197,3 +197,114 @@ The required answers are `sex`, `birth_date`, `height_cm`, `weight_kg`, `activit
 | `wake_time`, `sleep_time` | `HH:MM`; must differ, checked against the stored value when only one is sent |
 
 **200** the `settings` object · **422**
+
+---
+
+## Exercises
+
+All exercise endpoints need `Authorization: Bearer <access_token>`.
+
+The **library** (about 420 exercises, `is_custom: false`) is the same for everyone and read-only. **Custom exercises** (`is_custom: true`) belong to one user and are visible only to them. Exercises reference muscles and equipment by **slug**; `GET /v1/muscles` and `GET /v1/equipment` give the names, the body map region of each muscle (`body_map_key`) and the load increment of each equipment type.
+
+### Exercise object
+```json
+{
+  "id": "e7b40f5a-46df-5073-9161-a5081fb0e120",
+  "name": "Bench Press (Barbell)",
+  "type": "weight_reps",
+  "equipment": "barbell",
+  "primary_muscle": "chest",
+  "secondary_muscles": ["front_delts", "triceps"],
+  "instructions": ["Lie on a flat bench ...", "Take a grip ...", "Lower the bar ...", "Press the bar ..."],
+  "media_video_url": null, "media_thumb_url": null, "media_license": null,
+  "is_custom": false, "is_archived": false, "version": 1,
+  "created_at": "2026-10-26T09:00:00Z", "updated_at": "2026-10-26T09:00:00Z"
+}
+```
+- `type` is one of `weight_reps`, `bodyweight_reps`, `weighted_bodyweight`, `assisted_bodyweight`, `duration`, `distance_duration`. It decides which inputs a set has and **never changes after the exercise is saved**.
+- Library IDs are stable on every server (UUIDv5 of the exercise's slug), so they are safe to store on the device.
+- `media_video_url` is null for now: the app shows the body map with the primary muscle in red and secondary muscles in light red. `media_license` records the licence of any media that is added later.
+- `is_archived: true` marks a library exercise that has been retired. It is left out of lists but can still be fetched by ID, because old workouts point at it.
+
+### `GET /v1/exercises`
+Library exercises plus the caller's own custom exercises, ranked and paginated.
+
+| Query | Meaning |
+|---|---|
+| `q` | Search text (max 80 chars). Matches names that contain every word, or that are similar enough to catch typos (`bnch press`). Shorthand is expanded: `db`, `bb`, `kb`, `ez`, `rdl`, `sldl`, `ohp`, `pushup`, `pullup`, `chinup`, `situp`. `%` and `_` are literal |
+| `muscle` | Primary muscle slug; repeat for several (`muscle=chest&muscle=triceps` means either) |
+| `equipment` | Equipment slug; repeatable the same way |
+| `cursor` | `next_cursor` from the previous page |
+| `limit` | 1–500, default 50. 500 returns the whole library in one page, for mirroring it on a device |
+
+Without `q`, items are alphabetical. With `q`, the best matches come first: names that start with the query, then names containing every word, then fuzzy matches by similarity.
+
+**200**
+```json
+{"items": [ /* exercise objects */ ], "next_cursor": "WzAuMCwiYXJub2xkIHByZXNzIC4uLiJd" }
+```
+`next_cursor` is `null` on the last page.
+
+**Caching:** responses carry a weak `ETag` and `Cache-Control: private, no-cache`. Send the ETag back as `If-None-Match` to get **304 Not Modified** with an empty body when nothing changed. The ETag changes when the library is re-seeded or when the caller creates, edits or deletes a custom exercise, so new custom exercises appear immediately.
+
+**422** `invalid_cursor` · `validation_error`
+
+### `GET /v1/exercises/{id}`
+A library exercise (archived ones included) or one of the caller's custom exercises.
+
+**200** exercise object · **404** `not_found` (unknown, deleted, or another user's custom exercise)
+
+### `POST /v1/exercises`
+Create a custom exercise.
+```json
+{
+  "id": "optional client-generated UUID",
+  "name": "Landmine Press (Half Kneeling)",
+  "type": "weight_reps",
+  "equipment": "barbell",
+  "primary_muscle": "front_delts",
+  "secondary_muscles": ["chest", "triceps"],
+  "instructions": ["Kneel on one knee ...", "Press up and forward ..."]
+}
+```
+- `name`: 1–80 characters, inner whitespace collapsed.
+- `secondary_muscles`: up to 6 distinct slugs, not including the primary muscle. Returned sorted.
+- `instructions`: up to 10 lines of up to 300 characters. Blank lines are dropped. Defaults to `[]`.
+- Media fields can't be set on custom exercises.
+
+**201** exercise object · **409** `exercise_exists` (the `id` is already used) · **422** `validation_error` (unknown `equipment` or muscle slugs are reported on that field)
+
+### `PATCH /v1/exercises/{id}`
+Any subset of `name`, `equipment`, `primary_muscle`, `secondary_muscles`, `instructions`. `type` may be sent only with its current value. The primary/secondary rule is checked against the merged result. `version` goes up by one when something actually changed.
+
+**200** exercise object · **403** `library_exercise_read_only` · **404** · **422** `exercise_type_immutable` (`details.type` is the current type) | `validation_error`
+
+### `DELETE /v1/exercises/{id}`
+Soft-deletes a custom exercise: it leaves lists and `GET` returns 404, but past workouts keep their reference.
+
+**204** · **403** `library_exercise_read_only` · **404**
+
+### `POST /v1/exercises/{id}/duplicate`
+Copy a library exercise or one of your own into a new custom exercise. The body is optional:
+```json
+{"id": "optional client-generated UUID", "name": "optional, defaults to '<name> (Copy)'"}
+```
+The copy keeps the type, equipment, muscles, instructions and media.
+
+**201** exercise object · **404** · **409** `exercise_exists` · **422**
+
+### `GET /v1/muscles`
+**200**
+```json
+[{"id": "…", "slug": "chest", "name": "Chest", "body_map_key": "chest"}]
+```
+20 muscles. `body_map_key` is the region id in the app's SVG body map.
+
+### `GET /v1/equipment`
+**200**
+```json
+[{"id": "…", "slug": "barbell", "name": "Barbell", "increment_kg": 2.5}]
+```
+14 types. `increment_kg` is the smallest load step the overload coach suggests; `null` means progress by reps (bodyweight, bands, suspension trainer).
+
+Both lists carry an `ETag` tied to the library version and answer `If-None-Match` with **304**.
