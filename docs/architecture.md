@@ -78,6 +78,8 @@ Errors are raised as `AppError(code, message, status_code, details)` and rendere
   - Search runs in Postgres: names containing every word (`ILIKE`, using the trigram index) or fuzzy matches (`name %> q`, word similarity ≥ 0.6). Score = 2 for a prefix match, 1 for contains-all, plus `word_similarity`.
   - **ETag** = hash(library version, the user's custom-exercise stamp (`count`, `max(updated_at)`), filters, cursor, limit). `If-None-Match` → 304 before any listing work. `Cache-Control: private, no-cache` (not `max-age`), so a just-created custom exercise is never hidden by a stale HTTP cache.
   - Redis errors are logged and ignored: the API answers from Postgres, just slower.
+- **Body map** (`mobile/src/components/BodyMap.tsx`, logic in `src/bodymap/regions.ts`): drawn with `react-native-body-highlighter` (MIT, SVG). `REGIONS` maps each `body_map_key` to a highlighter region and the figures it shows on: the highlighter has one deltoid and one upper-back region, so front delts light only the front figure, rear delts only the back, and lats share the upper back. Primary muscles are `#E5383B`, secondary `#F4A3A5`, and a primary wins a shared region. Heat-map mode shades each muscle relative to the most-trained one (4 steps). Every other region gets an explicit neutral fill, because the library's male figure hard-codes a dark grey that would ignore the theme.
+- **ExerciseMedia** loops `media_video_url` muted (expo-video) with a small body map in the corner showing the figure that holds the primary muscles; without a URL it shows the large front-and-back map. Licensed red-muscle loops can replace it later by setting the URL, with no code change.
 
 ## Sync (Phase 4)
 

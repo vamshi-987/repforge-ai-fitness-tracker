@@ -28,7 +28,8 @@
       "expo-status-bar",
       "expo-sqlite",
       "expo-secure-store",
-      "expo-localization"
+      "expo-localization",
+      "expo-video"
     ],
     "scheme": "repforge"
   }
