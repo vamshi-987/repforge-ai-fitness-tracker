@@ -21,6 +21,7 @@ from app.cache.redis import close_redis, get_redis
 from app.config import Settings, get_settings
 from app.db.session import dispose_engine, get_db
 from app.deps import get_jwks_fetcher
+from app.services.library_seed import apply_library, load_library
 from tests.oauth_helpers import APPLE_AUDIENCE, GOOGLE_AUDIENCE, FakeJwksFetcher, RsaSigner
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -48,6 +49,21 @@ def migrated_test_database() -> Iterator[str]:
     else:
         os.environ["DATABASE_URL"] = previous
     get_settings.cache_clear()
+
+
+@pytest.fixture(scope="session")
+async def exercise_library(migrated_test_database: str) -> None:
+    """Commit the seeded exercise library to the test database once per session.
+
+    It is reference data, like a migration. The upsert is idempotent, so later runs only
+    compare rows. Tests that need an empty library delete it inside their own transaction.
+    """
+    eng = create_async_engine(migrated_test_database)
+    try:
+        async with async_sessionmaker(eng)() as session:
+            await apply_library(session, load_library())
+    finally:
+        await eng.dispose()
 
 
 @pytest.fixture

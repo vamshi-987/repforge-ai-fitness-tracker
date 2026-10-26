@@ -197,7 +197,7 @@ async def _upsert(
 ) -> tuple[set[uuid.UUID], set[uuid.UUID]]:
     """Insert new rows and rewrite changed ones. Returns (inserted ids, updated ids)."""
     table = cast(Table, model.__table__)
-    insert = pg_insert(table).values(rows)
+    insert = pg_insert(table)
     columns = [table.c[name] for name in compare]
     values: dict[str, Any] = {name: insert.excluded[name] for name in compare}
     values["updated_at"] = func.now()
@@ -206,8 +206,10 @@ async def _upsert(
     upsert = insert.on_conflict_do_update(
         index_elements=[table.c.id], set_=values, where=_changed(columns, insert.excluded)
     ).returning(table.c.id, literal_column("xmax = 0").label("inserted"))
-    # Unchanged rows match the conflict but fail the WHERE, so they are not returned.
-    result = (await session.execute(upsert)).all()
+    # executemany: compiled once and sent in batches ("insertmanyvalues"), much cheaper than
+    # one statement with thousands of bound parameters. Unchanged rows match the conflict but
+    # fail the WHERE, so they are not returned.
+    result = (await session.execute(upsert, rows)).all()
     inserted = {row.id for row in result if row.inserted}
     return inserted, {row.id for row in result if not row.inserted}
 
@@ -235,7 +237,7 @@ async def _sync_secondary_muscles(
         for muscle_id in muscles - desired[exercise_id]
     ]
     if to_add:
-        await session.execute(pg_insert(link).values(to_add))
+        await session.execute(pg_insert(link), to_add)
     if to_remove:
         await session.execute(
             delete(link).where(tuple_(link.c.exercise_id, link.c.muscle_id).in_(to_remove))
