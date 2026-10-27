@@ -3,10 +3,11 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useActiveWorkout } from '@/stores/activeWorkout';
 import { makeWorkout } from '@/test/workouts';
 
-import { ONGOING_NOTIFICATION_ID, useOngoingNotification } from '../useOngoingNotification';
+import { useOngoingNotification } from '../useOngoingNotification';
 
 jest.mock('@/workout/sqliteStorage', () => ({ sqliteWorkoutStorage: {} }));
 jest.mock('@/notifications/notifier', () => ({
+  ONGOING_NOTIFICATION_ID: 'workout-in-progress',
   showOngoing: jest.fn(() => Promise.resolve()),
   dismiss: jest.fn(() => Promise.resolve()),
 }));
@@ -29,7 +30,6 @@ describe('useOngoingNotification', () => {
       useActiveWorkout.getState().start(makeWorkout({ title: 'Push' }));
     });
     expect(notifier.showOngoing).toHaveBeenCalledWith(
-      ONGOING_NOTIFICATION_ID,
       'Push',
       expect.stringMatching(/^Workout in progress since .+\. Tap to open\.$/),
     );
@@ -41,6 +41,6 @@ describe('useOngoingNotification', () => {
     expect(notifier.showOngoing).toHaveBeenCalledTimes(1);
 
     await act(async () => useActiveWorkout.getState().end());
-    expect(notifier.dismiss).toHaveBeenLastCalledWith(ONGOING_NOTIFICATION_ID);
+    expect(notifier.dismiss).toHaveBeenLastCalledWith('workout-in-progress');
   });
 });

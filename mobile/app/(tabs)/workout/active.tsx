@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { RestTimer } from '@/components/workout/RestTimer';
 import { WorkoutExerciseCard } from '@/components/workout/WorkoutExerciseCard';
 import { exercisePicker } from '@/exercises/picker';
 import { newId } from '@/lib/ids';
@@ -11,11 +12,14 @@ import { formatWeight } from '@/lib/units';
 import { useNow } from '@/lib/useNow';
 import { useActiveWorkout } from '@/stores/activeWorkout';
 import { useAuth } from '@/stores/auth';
+import { useRestTimer } from '@/stores/timer';
 import { useTheme } from '@/theme/useTheme';
 import { usePreviousSets } from '@/workout/historyStore';
 import { addExercises, rename, workoutStats } from '@/workout/model';
 import { confirmDiscard } from '@/workout/prompts';
+import { restAfterSet } from '@/workout/rest';
 import type { Units } from '@/workout/setValues';
+import type { WorkoutExercise } from '@/workout/types';
 import { startEmptyWorkout } from '@/workout/start';
 import { elapsedMs, formatElapsed } from '@/workout/time';
 import { useKeepAwakeWhileFocused } from '@/workout/useKeepAwakeWhileFocused';
@@ -75,6 +79,11 @@ export default function ActiveWorkoutScreen() {
   const addExercise = () => {
     exercisePicker.expect((picked) => update((w) => addExercises(w, picked, newId)));
     router.push('/exercise-picker');
+  };
+  const restAfter = (exercise: WorkoutExercise) => {
+    const current = useActiveWorkout.getState().workout;
+    const seconds = current ? restAfterSet(current, exercise.id, defaultRestS) : 0;
+    if (seconds > 0) useRestTimer.getState().start(seconds, exercise.name, Date.now());
   };
   const discard = () =>
     confirmDiscard(() => {
@@ -157,6 +166,7 @@ export default function ActiveWorkoutScreen() {
             defaultRestS={defaultRestS}
             newId={newId}
             onUpdate={update}
+            onSetCompleted={restAfter}
           />
         ))}
         {workout.exercises.length === 0 ? (
@@ -168,6 +178,7 @@ export default function ActiveWorkoutScreen() {
         <Button label="Add exercises" onPress={addExercise} />
         <Button label="Discard workout" variant="ghost" onPress={discard} />
       </ScrollView>
+      <RestTimer />
     </SafeAreaView>
   );
 }

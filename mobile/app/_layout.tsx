@@ -8,9 +8,14 @@ import { destination } from '@/auth/destination';
 import { DatabaseProvider } from '@/db/DatabaseProvider';
 import { forgetUserExercises } from '@/exercises/library';
 import { forgetRoutines } from '@/routines/store';
+import { installNotificationHandler } from '@/notifications/notifier';
 import { forgetActiveWorkout } from '@/stores/activeWorkout';
 import { useAuth } from '@/stores/auth';
+import { useRestTimer } from '@/stores/timer';
 import { useTheme } from '@/theme/useTheme';
+
+// Decide how notifications show while the app is open, before any is posted.
+installNotificationHandler();
 
 export default function RootLayout() {
   const [queryClient] = useState(createQueryClient);
@@ -31,6 +36,7 @@ export default function RootLayout() {
           forgetUserExercises().catch(() => undefined);
           forgetRoutines().catch(() => undefined);
           forgetActiveWorkout().catch(() => undefined);
+          useRestTimer.getState().skip();
         }
       }),
     [queryClient],

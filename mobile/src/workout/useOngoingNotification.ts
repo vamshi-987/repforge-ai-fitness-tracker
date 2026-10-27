@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
 
-import { dismiss, showOngoing } from '@/notifications/notifier';
+import { dismiss, ONGOING_NOTIFICATION_ID, showOngoing } from '@/notifications/notifier';
 import { useActiveWorkout } from '@/stores/activeWorkout';
-
-export const ONGOING_NOTIFICATION_ID = 'workout-in-progress';
 
 /** "6:05 PM" in the phone's locale. */
 export function clockTime(ms: number): string {
@@ -24,7 +22,6 @@ export function useOngoingNotification(): void {
       return;
     }
     void showOngoing(
-      ONGOING_NOTIFICATION_ID,
       workout.title,
       `Workout in progress since ${clockTime(workout.startedAt)}. Tap to open.`,
     );
