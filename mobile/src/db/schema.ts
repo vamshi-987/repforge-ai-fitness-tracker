@@ -1,6 +1,6 @@
 import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import type { ExerciseType } from '@/api/types';
+import type { ExerciseType, Routine, RoutineFolder } from '@/api/types';
 
 /** Key/value store for sync cursors, ETags and other device-local bookkeeping. */
 export const syncState = sqliteTable('sync_state', {
@@ -43,4 +43,18 @@ export const exercises = sqliteTable('exercises', {
   version: integer('version').notNull(),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
+});
+
+// --- routines mirror (GET /routines, /routine-folders) ------------------------------------
+// The server's copy of the user's routines, so a routine can be started offline. Each row
+// holds the API object as JSON: a routine is always read and written whole.
+
+export const routines = sqliteTable('routines', {
+  id: text('id').primaryKey(),
+  payload: text('payload', { mode: 'json' }).$type<Routine>().notNull(),
+});
+
+export const routineFolders = sqliteTable('routine_folders', {
+  id: text('id').primaryKey(),
+  payload: text('payload', { mode: 'json' }).$type<RoutineFolder>().notNull(),
 });

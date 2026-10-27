@@ -15,6 +15,13 @@
       "when": 1792991687377,
       "tag": "0001_unknown_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793074195301,
+      "tag": "0002_parallel_prima",
+      "breakpoints": true
     }
   ]
 }

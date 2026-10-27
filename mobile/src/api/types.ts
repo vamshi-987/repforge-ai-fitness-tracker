@@ -151,3 +151,72 @@ export interface ExerciseCreate {
 
 /** PATCH body; `type` may only be sent unchanged (it is immutable after save). */
 export type ExerciseUpdate = Partial<Omit<ExerciseCreate, 'id'>>;
+
+// --- routines (docs/api.md § Routines) --------------------------------------------------
+
+export type SetType = 'warmup' | 'normal' | 'drop' | 'failure';
+
+export interface RoutineSet {
+  set_type: SetType;
+  target_weight_kg: number | null;
+  target_reps: number | null;
+  target_duration_s: number | null;
+}
+
+export interface RoutineExercise {
+  exercise_id: string;
+  /** Read from the exercise, so the routine reads well even if it was deleted. */
+  exercise_name: string;
+  exercise_type: ExerciseType;
+  /** Adjacent exercises with the same number form a superset. */
+  superset_group: number | null;
+  /** null = the user's default rest (settings.default_rest_s). */
+  rest_seconds: number | null;
+  rep_range_min: number | null;
+  rep_range_max: number | null;
+  notes: string;
+  sets: RoutineSet[];
+}
+
+export interface Routine {
+  id: string;
+  folder_id: string | null;
+  name: string;
+  notes: string;
+  position: number;
+  exercises: RoutineExercise[];
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoutineList {
+  items: Routine[];
+  /** null = unlimited (Pro). */
+  routine_limit: number | null;
+}
+
+export interface RoutineFolder {
+  id: string;
+  name: string;
+  position: number;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type RoutineExerciseInput = Pick<RoutineExercise, 'exercise_id'> &
+  Partial<Omit<RoutineExercise, 'exercise_id' | 'exercise_name' | 'exercise_type' | 'sets'>> & {
+    sets?: Partial<RoutineSet>[];
+  };
+
+export interface RoutineCreate {
+  id?: string;
+  name: string;
+  notes?: string;
+  folder_id?: string | null;
+  exercises?: RoutineExerciseInput[];
+}
+
+/** PATCH body: omitted = unchanged; `exercises` replaces the whole list. */
+export type RoutineUpdate = Partial<Omit<RoutineCreate, 'id'>>;

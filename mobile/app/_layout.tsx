@@ -7,6 +7,7 @@ import { createQueryClient } from '@/api/queryClient';
 import { destination } from '@/auth/destination';
 import { DatabaseProvider } from '@/db/DatabaseProvider';
 import { forgetUserExercises } from '@/exercises/library';
+import { forgetRoutines } from '@/routines/store';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/theme/useTheme';
 
@@ -27,6 +28,7 @@ export default function RootLayout() {
         if (previous.status === 'signedIn' && state.status === 'signedOut') {
           queryClient.clear();
           forgetUserExercises().catch(() => undefined);
+          forgetRoutines().catch(() => undefined);
         }
       }),
     [queryClient],
@@ -57,6 +59,12 @@ export default function RootLayout() {
             <Stack.Screen name="exercises/index" options={{ ...header, title: 'Exercises' }} />
             <Stack.Screen name="exercise/[id]" options={{ ...header, title: '' }} />
             <Stack.Screen name="exercise/form" options={{ ...header, title: 'Exercise' }} />
+            <Stack.Screen
+              name="exercise-picker"
+              options={{ ...header, title: 'Add exercises', presentation: 'modal' }}
+            />
+            <Stack.Screen name="routine/[id]" options={{ ...header, title: '' }} />
+            <Stack.Screen name="routine/edit" options={{ ...header, title: 'Routine' }} />
           </Stack.Protected>
           {/* Login/register and onboarding; app/(auth)/_layout.tsx guards each part. */}
           <Stack.Protected guard={where === 'login' || where === 'onboarding'}>
