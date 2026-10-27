@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { Alert } from 'react-native';
 
@@ -230,7 +230,7 @@ describe('Active workout screen', () => {
 
     await fireEvent.press(screen.getByLabelText('Add exercises'));
     expect(expoRouter.router.push).toHaveBeenCalledWith('/exercise-picker');
-    exercisePicker.deliver([PUSH_UP]);
+    await act(() => exercisePicker.deliver([PUSH_UP]));
     expect(await screen.findByLabelText('Push-Up set 1 reps')).toBeOnTheScreen();
     expect(screen.queryByLabelText('Push-Up set 1 weight')).toBeNull();
 

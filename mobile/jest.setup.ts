@@ -40,3 +40,22 @@ jest.mock('expo-crypto', () => ({
   randomUUID: () =>
     (globalThis as unknown as { crypto: { randomUUID(): string } }).crypto.randomUUID(),
 }));
+
+// React Native loads most components lazily, on first property access. On a cold Jest cache
+// (always the case in CI) the first render in a screen test would transform them inside the
+// test's timeout. Loading them here moves that one-off cost to setup, which has no timeout.
+{
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
+  void [
+    RN.ActivityIndicator,
+    RN.FlatList,
+    RN.KeyboardAvoidingView,
+    RN.Modal,
+    RN.Pressable,
+    RN.RefreshControl,
+    RN.ScrollView,
+    RN.TextInput,
+    RN.Alert,
+    RN.AppState,
+  ];
+}
