@@ -105,8 +105,8 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 | `backend/seeds/*.json` (exercise library) | `make seed` | Upserts the library; unchanged rows are not touched, removed exercises are archived. A seed that changes an existing exercise's `type` is refused |
 | `infra/postgres/init/*.sql` | `make nuke && make up && make migrate` ⚠️ wipes data | Init scripts run only on a fresh volume |
 | `infra/seaweedfs/s3.json` | `docker compose restart s3` | The config is read at startup |
-| `mobile/package.json` / `pnpm-lock.yaml` | `make mobile-install`, then restart `make mobile-start` | New JS packages (Phase 1 added `expo-secure-store`, `expo-localization`; Phase 2 added `react-native-svg`, `react-native-body-highlighter`, `expo-video`) |
-| `.env.example` gained variables (Phase 1: `JWT_SECRET`, `GOOGLE_CLIENT_IDS`, `APPLE_CLIENT_IDS`, `LOGIN_RATE_*`) | Copy the new lines into `.env` if you want non-default values, then `make up` | Defaults work for dev; `make up` recreates containers with the new env |
+| `mobile/package.json` / `pnpm-lock.yaml` | `make mobile-install`, then restart `make mobile-start` | New JS packages (Phase 1 added `expo-secure-store`, `expo-localization`; Phase 2 added `react-native-svg`, `react-native-body-highlighter`, `expo-video`; Phase 3 added `expo-crypto`, `expo-notifications`, `expo-keep-awake`, `expo-haptics`) |
+| `.env.example` gained variables (Phase 1: `JWT_SECRET`, `GOOGLE_CLIENT_IDS`, `APPLE_CLIENT_IDS`, `LOGIN_RATE_*`; Phase 3: `FREE_ROUTINE_LIMIT`) | Copy the new lines into `.env` if you want non-default values, then `make up` | Defaults work for dev; `make up` recreates containers with the new env |
 | `mobile/src/db/schema.ts` (local SQLite tables) | `cd mobile && pnpm db:generate` and commit the new files in `src/db/migrations/` | The app runs these on launch |
 | `mobile/app.json`, `babel.config.js`, `metro.config.js` | `cd mobile && pnpm start --clear` | Clears Metro's cache |
 | `mobile/.env.local` | `cd mobile && pnpm start --clear` | `EXPO_PUBLIC_*` values are inlined at bundle time |
@@ -121,6 +121,7 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 
 ### Mobile local database
 - Phase 2 added the offline exercise library (`muscles`, `equipment`, `exercises`). The app downloads it the first time it opens online after sign-in (Workout → Exercise library shows "Downloading…"), then only revalidates. Run `make seed` first, or the server has no library to send.
+- Phase 3 added `routines` and `routine_folders` (a mirror of the server's routines, refreshed when the Workout tab opens or is pulled down), `active_workout` (the workout being logged, saved 300 ms after each change), and the local history: `workouts`, `workout_exercises`, `workout_sets`, `workout_muscle_sets`, `personal_records`. Finished workouts stay on the phone with `synced_at = NULL` until Phase 4's sync engine sends them.
 - The phone's SQLite database is migrated automatically when the app launches (`DatabaseProvider`).
 - To start fresh on the device, delete the app's data: long-press Expo Go → App info → Clear storage (Android), or reinstall Expo Go (iOS).
 
@@ -144,6 +145,20 @@ make up                          # backend tests need postgres + redis + worker
 make check                       # must be green: lint, types, all tests, services coverage >= 95%
 ```
 `make -C backend test-unit` runs only the tests that need no services (quick feedback while coding).
+
+### Trying the workout flow by hand (Phase 3)
+1. Allow notifications when the app asks (first workout). The rest timer and, on Android, the "workout in progress" notification need it.
+2. Workout tab → **New routine** → add exercises → **Save**, then **Start** on its card.
+3. Tick a set: the rest timer starts (routine rest → Settings default → 90 s). Lock the phone or switch apps: the "Rest is over" notification arrives on time.
+4. Leave the app for a few minutes and come back: the clock in the workout header and the bar above the tabs are right at once (they are `now − startedAt`, not a counter).
+5. Kill the app mid-workout (swipe it away) and reopen it: **Resume your workout?** brings everything back.
+6. **Finish** → adjust the duration if you forgot to stop → **Save workout**. Repeat with a heavier set later to see the 🏆 personal-record card. All of this works in airplane mode.
+
+Free accounts can keep 4 routines (`FREE_ROUTINE_LIMIT`). To test as Pro:
+```bash
+docker compose exec postgres psql -U repforge repforge -c "update users set is_pro = true where email = 'me@example.com'"
+```
+Pull down on the Workout tab afterwards to refresh the limit.
 
 ### Auth in development
 ```bash
@@ -176,4 +191,7 @@ curl -s -XPOST localhost:8010/v1/auth/register -H 'content-type: application/jso
 | App signs you out unexpectedly | The refresh token was rejected (expired after 30 days unused, or reused). Reuse can happen if the app was killed in the instant between the server rotating the token and the phone saving it; sign in again |
 | Celery task changes have no effect | `docker compose restart worker beat` |
 | Database is in a weird state locally | `make nuke && make up && make migrate && make seed` ⚠️ wipes local data |
+| The rest timer never notifies | Notifications are off for Expo Go: turn them on in the phone's Settings. In the app the timer still counts down and buzzes while the app is open |
+| No "workout in progress" notification on iOS | Expected: it is Android-only. iOS gets a Live Activity in Phase 9 |
+| A screen test times out only on CI (or after `jest --clearCache`) | A cold Jest cache transforms React Native's lazily loaded components during the first render. `jest.setup.ts` loads them up front; add any newly used lazy component there |
 | `make seed` says `seed refused: exercise type is immutable` | An edit to `backend/seeds/exercises.json` changed the `type` of an exercise that already exists. Workout history depends on the type, so add a new exercise (new slug) instead |
