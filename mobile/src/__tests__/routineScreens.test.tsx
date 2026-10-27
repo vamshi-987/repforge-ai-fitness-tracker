@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { Alert } from 'react-native';
 
@@ -347,7 +347,7 @@ describe('Routine editor', () => {
     await fireEvent.changeText(await screen.findByLabelText('Routine name'), 'Chest day');
     await fireEvent.press(screen.getByLabelText('Add exercises'));
     expect(expoRouter.router.push).toHaveBeenCalledWith('/exercise-picker');
-    exercisePicker.deliver([BENCH]);
+    await act(() => exercisePicker.deliver([BENCH]));
 
     await fireEvent.changeText(
       await screen.findByLabelText('Bench Press (Barbell) set 1 weight'),
