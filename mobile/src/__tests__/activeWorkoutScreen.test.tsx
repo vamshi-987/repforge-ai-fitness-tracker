@@ -160,8 +160,10 @@ describe('Active workout screen', () => {
       ],
     });
     await show(<ActiveWorkoutScreen />);
+    // Last session loads from the device asynchronously; tick once it is shown.
+    await screen.findByLabelText(`${BENCH} warm-up set previous: 40 kg × 10`);
 
-    await fireEvent.press(await screen.findByLabelText(`Complete ${BENCH} warm-up set`));
+    await fireEvent.press(screen.getByLabelText(`Complete ${BENCH} warm-up set`));
 
     expect(firstSets()[0]).toMatchObject({ weightKg: 40, reps: 10, completed: true });
   });
