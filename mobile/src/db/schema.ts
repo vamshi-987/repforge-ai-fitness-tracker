@@ -1,6 +1,7 @@
 import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import type { ExerciseType, Routine, RoutineFolder } from '@/api/types';
+import type { ActiveWorkout } from '@/workout/types';
 
 /** Key/value store for sync cursors, ETags and other device-local bookkeeping. */
 export const syncState = sqliteTable('sync_state', {
@@ -57,4 +58,14 @@ export const routines = sqliteTable('routines', {
 export const routineFolders = sqliteTable('routine_folders', {
   id: text('id').primaryKey(),
   payload: text('payload', { mode: 'json' }).$type<RoutineFolder>().notNull(),
+});
+
+// --- the workout being logged (device-only until finished) --------------------------------
+// At most one row. The whole live workout is saved as JSON on every change (debounced), so
+// it survives the app being killed and is restored on the next launch.
+
+export const activeWorkout = sqliteTable('active_workout', {
+  id: text('id').primaryKey(),
+  payload: text('payload', { mode: 'json' }).$type<ActiveWorkout>().notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 });

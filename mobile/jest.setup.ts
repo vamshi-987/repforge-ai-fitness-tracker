@@ -34,3 +34,9 @@ jest.mock('expo-sqlite/kv-store', () => {
     },
   };
 });
+
+// expo-crypto is native; Node's Web Crypto gives real, unique UUIDs.
+jest.mock('expo-crypto', () => ({
+  randomUUID: () =>
+    (globalThis as unknown as { crypto: { randomUUID(): string } }).crypto.randomUUID(),
+}));
