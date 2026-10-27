@@ -10,7 +10,7 @@ from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.db.session import dispose_engine
-from app.routers import auth, exercises, health, me, routines
+from app.routers import auth, exercises, health, me, routines, workouts
 
 API_PREFIX = "/v1"
 
@@ -52,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(me.router, prefix=API_PREFIX)
     app.include_router(exercises.router, prefix=API_PREFIX)
     app.include_router(routines.router, prefix=API_PREFIX)
+    app.include_router(workouts.router, prefix=API_PREFIX)
     return app
 
 
