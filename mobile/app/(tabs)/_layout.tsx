@@ -8,6 +8,7 @@ import { useLibrarySync } from '@/exercises/library';
 import { useTheme } from '@/theme/useTheme';
 import { useActiveWorkoutBoot } from '@/workout/useActiveWorkoutBoot';
 import { useOngoingNotification } from '@/workout/useOngoingNotification';
+import { useRestTimerEffects } from '@/workout/useRestTimerEffects';
 import { useResumePrompt } from '@/workout/useResumePrompt';
 
 // Text glyphs keep the scaffold free of icon dependencies; a proper icon set lands with the UI work.
@@ -22,6 +23,7 @@ export default function TabsLayout() {
   useActiveWorkoutBoot();
   useResumePrompt();
   useOngoingNotification();
+  useRestTimerEffects();
 
   return (
     <Tabs

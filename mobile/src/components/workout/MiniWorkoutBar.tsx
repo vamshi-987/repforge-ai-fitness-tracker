@@ -2,9 +2,12 @@ import { usePathname } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useNow } from '@/lib/useNow';
+import { formatDuration } from '@/lib/format';
 import { useActiveWorkout } from '@/stores/activeWorkout';
+import { useRestTimer } from '@/stores/timer';
 import { useTheme } from '@/theme/useTheme';
 import { nextSet } from '@/workout/model';
+import { remainingSeconds } from '@/workout/rest';
 import { describeSet } from '@/workout/setValues';
 import { ACTIVE_WORKOUT_PATH, openActiveWorkout } from '@/workout/start';
 import { elapsedMs, formatElapsed } from '@/workout/time';
@@ -13,6 +16,7 @@ import { elapsedMs, formatElapsed } from '@/workout/time';
 export function MiniWorkoutBar() {
   const { colors, spacing, typography } = useTheme();
   const workout = useActiveWorkout((state) => state.workout);
+  const restEndsAt = useRestTimer((state) => state.endsAt);
   const pathname = usePathname();
   const now = useNow(1000, workout !== null);
 
@@ -42,7 +46,11 @@ export function MiniWorkoutBar() {
           {workout.title}
         </Text>
         <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
-          {next ? `${next.exercise.name} · ${describeSet(next.label)}` : 'All sets done'}
+          {restEndsAt !== null
+            ? `Resting · ${formatDuration(remainingSeconds(restEndsAt, now))}`
+            : next
+              ? `${next.exercise.name} · ${describeSet(next.label)}`
+              : 'All sets done'}
         </Text>
       </View>
       <Text style={[typography.body, styles.clock, { color: colors.text }]}>{elapsed}</Text>

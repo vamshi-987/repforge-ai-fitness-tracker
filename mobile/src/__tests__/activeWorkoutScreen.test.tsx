@@ -7,6 +7,7 @@ import { MiniWorkoutBar } from '@/components/workout/MiniWorkoutBar';
 import { exercisePicker } from '@/exercises/picker';
 import { useActiveWorkout } from '@/stores/activeWorkout';
 import { resetAuthStoreForTests, useAuth } from '@/stores/auth';
+import { useRestTimer } from '@/stores/timer';
 import { makeMe } from '@/test/helpers';
 import { makeExercise } from '@/test/library';
 import { makeRoutine } from '@/test/routines';
@@ -30,7 +31,10 @@ jest.mock('@/workout/sqliteHistory', () => {
 jest.mock('@/notifications/notifier', () => ({
   showOngoing: jest.fn(() => Promise.resolve()),
   dismiss: jest.fn(() => Promise.resolve()),
+  scheduleRestEnd: jest.fn(() => Promise.resolve()),
+  cancelRestEnd: jest.fn(() => Promise.resolve()),
 }));
+jest.mock('@/lib/haptics', () => ({ buzzDone: jest.fn() }));
 jest.mock('expo-keep-awake', () => ({
   activateKeepAwakeAsync: jest.fn(() => Promise.resolve()),
   deactivateKeepAwake: jest.fn(() => Promise.resolve()),
@@ -113,6 +117,7 @@ beforeEach(() => {
   resetAuthStoreForTests();
   useAuth.setState({ status: 'signedIn', me: makeMe({ onboarding_complete: true }) });
   useActiveWorkout.setState({ workout: null, restored: false, hydrated: true });
+  useRestTimer.setState({ endsAt: null, totalS: 0, label: null });
   history.workouts.splice(0, history.workouts.length, lastSession());
   expoRouter.usePathname.mockReturnValue('/home');
 });
@@ -289,6 +294,64 @@ describe('Active workout screen', () => {
   });
 });
 
+describe('Rest timer on the workout screen', () => {
+  const notifier = jest.requireMock<{ scheduleRestEnd: jest.Mock; cancelRestEnd: jest.Mock }>(
+    '@/notifications/notifier',
+  );
+
+  it('starts when a set is ticked, with ±15 s and skip', async () => {
+    begin(routineWorkout());
+    await show(<ActiveWorkoutScreen />);
+
+    await fireEvent.press(screen.getByLabelText(`Complete ${BENCH} warm-up set`));
+
+    // The routine has no rest of its own, so the Settings default (90 s) applies.
+    expect(screen.getByLabelText('Rest timer: 1:30 left')).toBeOnTheScreen();
+    expect(notifier.scheduleRestEnd).toHaveBeenCalledWith(NOW + 90_000, expect.any(String));
+
+    await fireEvent.press(screen.getByLabelText('Add 15 seconds'));
+    expect(screen.getByLabelText('Rest timer: 1:45 left')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByLabelText('Subtract 15 seconds'));
+    await fireEvent.press(screen.getByLabelText('Subtract 15 seconds'));
+    expect(screen.getByLabelText('Rest timer: 1:15 left')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByLabelText('Skip rest'));
+    expect(screen.queryByLabelText(/Rest timer/)).toBeNull();
+    expect(notifier.cancelRestEnd).toHaveBeenCalled();
+  });
+
+  it('waits for the end of a superset round', async () => {
+    const routine = routineWorkout();
+    const [first] = routine.exercises;
+    if (!first) throw new Error('fixture');
+    const second = { ...first, id: 'second', name: 'Push-Up', restSeconds: 45 };
+    begin({
+      ...routine,
+      exercises: [
+        { ...first, supersetGroup: 1 },
+        { ...second, supersetGroup: 1 },
+      ],
+    });
+    await show(<ActiveWorkoutScreen />);
+
+    await fireEvent.press(screen.getByLabelText(`Complete ${BENCH} warm-up set`));
+    expect(screen.queryByLabelText(/Rest timer/)).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Complete Push-Up warm-up set'));
+    expect(screen.getByLabelText('Rest timer: 0:45 left')).toBeOnTheScreen();
+  });
+
+  it('stays off for exercises set to no rest', async () => {
+    const routine = routineWorkout();
+    begin({ ...routine, exercises: routine.exercises.map((e) => ({ ...e, restSeconds: 0 })) });
+    await show(<ActiveWorkoutScreen />);
+
+    await fireEvent.press(screen.getByLabelText(`Complete ${BENCH} warm-up set`));
+
+    expect(screen.queryByLabelText(/Rest timer/)).toBeNull();
+  });
+});
+
 describe('Mini workout bar', () => {
   it('is hidden without a workout', async () => {
     await show(<MiniWorkoutBar />);
@@ -304,6 +367,14 @@ describe('Mini workout bar', () => {
     expect(screen.getByText(`${BENCH} · Warm-up set`)).toBeOnTheScreen();
     await fireEvent.press(bar);
     expect(expoRouter.router.push).toHaveBeenCalledWith('/workout/active');
+  });
+
+  it('shows the rest countdown while resting', async () => {
+    begin(routineWorkout());
+    useRestTimer.setState({ endsAt: NOW + 75_000, totalS: 90, label: BENCH });
+    await show(<MiniWorkoutBar />);
+
+    expect(screen.getByText('Resting · 1:15')).toBeOnTheScreen();
   });
 
   it('says when every set is done', async () => {
