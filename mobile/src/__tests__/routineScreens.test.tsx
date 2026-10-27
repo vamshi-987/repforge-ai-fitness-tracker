@@ -8,6 +8,7 @@ import type { LibraryRepo } from '@/exercises/repo';
 import { exercisePicker } from '@/exercises/picker';
 import type { RoutineRepo } from '@/routines/repo';
 import { resetRoutineSyncForTests } from '@/routines/store';
+import { useActiveWorkout } from '@/stores/activeWorkout';
 import { resetAuthStoreForTests, useAuth } from '@/stores/auth';
 import { errorResponse, fetchCalls, jsonResponse, makeMe, tokenPair } from '@/test/helpers';
 import { BENCH, EQUIPMENT, EXERCISES, MUSCLES } from '@/test/library';
@@ -27,6 +28,11 @@ jest.mock('@/exercises/sqliteRepo', () => {
   const { createMemoryRepo } =
     jest.requireActual<typeof import('@/exercises/repo')>('@/exercises/repo');
   return { sqliteLibraryRepo: createMemoryRepo() };
+});
+jest.mock('@/workout/sqliteStorage', () => {
+  const { createMemoryWorkoutStorage } =
+    jest.requireActual<typeof import('@/workout/storage')>('@/workout/storage');
+  return { sqliteWorkoutStorage: createMemoryWorkoutStorage() };
 });
 jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(() => ({})),
@@ -208,6 +214,39 @@ describe('Workout tab', () => {
     await fireEvent.press(screen.getByLabelText('Delete folder'));
 
     expect(await screen.findByText(/You're offline/)).toBeOnTheScreen();
+  });
+});
+
+describe('Starting workouts', () => {
+  beforeEach(() => useActiveWorkout.setState({ workout: null }));
+
+  it('starts a routine from its card, offline', async () => {
+    offline();
+    await show(<WorkoutScreen />);
+
+    await fireEvent.press(await screen.findByLabelText('Start Pull'));
+
+    expect(useActiveWorkout.getState().workout).toMatchObject({
+      routineId: PULL.id,
+      title: 'Pull',
+    });
+    expect(useActiveWorkout.getState().workout?.exercises.map((e) => e.supersetGroup)).toEqual([
+      1, 1,
+    ]);
+    expect(expoRouter.router.push).toHaveBeenCalledWith('/workout/active');
+  });
+
+  it('starts an empty workout and a routine from its screen', async () => {
+    offline();
+    await show(<WorkoutScreen />);
+    await fireEvent.press(await screen.findByLabelText('Start empty workout'));
+    expect(useActiveWorkout.getState().workout?.exercises).toEqual([]);
+
+    useActiveWorkout.setState({ workout: null });
+    expoRouter.useLocalSearchParams.mockReturnValue({ id: LEGS.id });
+    await show(<RoutineDetailScreen />);
+    await fireEvent.press(await screen.findByLabelText('Start routine'));
+    expect(useActiveWorkout.getState().workout?.title).toBe('Legs');
   });
 });
 

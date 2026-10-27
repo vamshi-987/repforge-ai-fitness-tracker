@@ -19,6 +19,7 @@ import {
 import { ROUTINES_QUERY_KEY, useRoutines, useRoutineSync } from '@/routines/store';
 import { groupRoutines, moveId, routinePreview } from '@/routines/view';
 import { useTheme } from '@/theme/useTheme';
+import { startEmptyWorkout, startRoutineWorkout } from '@/workout/start';
 
 type Prompt = { kind: 'new' } | { kind: 'rename'; folder: RoutineFolder };
 
@@ -116,6 +117,7 @@ export default function WorkoutScreen() {
         <Text accessibilityRole="header" style={[typography.title, { color: colors.text }]}>
           Workout
         </Text>
+        <Button label="Start empty workout" onPress={startEmptyWorkout} />
 
         <View style={[styles.row, styles.between]}>
           <Text style={[typography.heading, { color: colors.text }]}>Routines</Text>
@@ -224,6 +226,24 @@ export default function WorkoutScreen() {
                     {routinePreview(routine)}
                   </Text>
                 </Pressable>
+                {reordering ? null : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Start ${routine.name}`}
+                    onPress={() => startRoutineWorkout(routine)}
+                    hitSlop={8}
+                    style={{
+                      backgroundColor: colors.primary,
+                      borderRadius: radius.md,
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.sm,
+                    }}
+                  >
+                    <Text style={[typography.caption, styles.bold, { color: '#FFFFFF' }]}>
+                      Start
+                    </Text>
+                  </Pressable>
+                )}
                 {reordering ? (
                   <View style={styles.row}>
                     {arrow(

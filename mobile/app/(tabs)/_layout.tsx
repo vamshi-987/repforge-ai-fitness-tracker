@@ -1,9 +1,13 @@
 import { Tabs } from 'expo-router';
+// Expo Router ships React Navigation inside; its tab bar is reused under the workout bar.
+import { BottomTabBar } from 'expo-router/build/react-navigation/bottom-tabs/index';
 import { Text, type ColorValue } from 'react-native';
 
+import { MiniWorkoutBar } from '@/components/workout/MiniWorkoutBar';
 import { useLibrarySync } from '@/exercises/library';
 import { useTheme } from '@/theme/useTheme';
 import { useActiveWorkoutBoot } from '@/workout/useActiveWorkoutBoot';
+import { useOngoingNotification } from '@/workout/useOngoingNotification';
 import { useResumePrompt } from '@/workout/useResumePrompt';
 
 // Text glyphs keep the scaffold free of icon dependencies; a proper icon set lands with the UI work.
@@ -17,9 +21,16 @@ export default function TabsLayout() {
   useLibrarySync();
   useActiveWorkoutBoot();
   useResumePrompt();
+  useOngoingNotification();
 
   return (
     <Tabs
+      tabBar={(props) => (
+        <>
+          <MiniWorkoutBar />
+          <BottomTabBar {...props} />
+        </>
+      )}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,

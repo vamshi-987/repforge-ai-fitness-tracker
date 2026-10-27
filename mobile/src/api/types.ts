@@ -220,3 +220,7 @@ export interface RoutineCreate {
 
 /** PATCH body: omitted = unchanged; `exercises` replaces the whole list. */
 export type RoutineUpdate = Partial<Omit<RoutineCreate, 'id'>>;
+
+// --- workouts ---------------------------------------------------------------------------
+
+export type WorkoutVisibility = 'public' | 'followers' | 'private';

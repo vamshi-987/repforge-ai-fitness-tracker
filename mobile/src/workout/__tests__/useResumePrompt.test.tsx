@@ -12,10 +12,15 @@ jest.mock('@/workout/sqliteStorage', () => {
   return { sqliteWorkoutStorage: createMemoryWorkoutStorage() };
 });
 
+jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+
+const expoRouter = jest.requireMock<{ router: { push: jest.Mock } }>('expo-router');
+
 type Buttons = Parameters<typeof Alert.alert>[2];
 
 beforeEach(() => {
   jest.restoreAllMocks();
+  expoRouter.router.push.mockClear();
   useActiveWorkout.setState({ workout: null, restored: false, hydrated: true });
 });
 
@@ -26,7 +31,7 @@ function pressOn(label: string) {
 }
 
 describe('useResumePrompt', () => {
-  it('asks once and keeps the workout on Resume', async () => {
+  it('asks once, keeps the workout and opens it on Resume', async () => {
     const alert = pressOn('Resume');
     useActiveWorkout.setState({ workout: makeWorkout({ title: 'Push' }), restored: true });
 
