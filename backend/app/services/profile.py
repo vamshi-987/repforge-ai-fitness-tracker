@@ -58,14 +58,18 @@ def missing_onboarding_fields(profile: UserProfile, weight_kg: float | None) -> 
     return [name for name in ONBOARDING_FIELDS if answered[name] is None]
 
 
-def field_error(field: str, message: str) -> AppError:
+def invalid_at(loc: list[str | int], message: str) -> AppError:
     """A 422 shaped exactly like request-validation errors, for checks that need the DB."""
     return AppError(
         "validation_error",
         "Request is invalid",
         422,
-        [{"loc": ["body", field], "msg": message, "type": "value_error"}],
+        [{"loc": loc, "msg": message, "type": "value_error"}],
     )
+
+
+def field_error(field: str, message: str) -> AppError:
+    return invalid_at(["body", field], message)
 
 
 # --- loading ----------------------------------------------------------------------------

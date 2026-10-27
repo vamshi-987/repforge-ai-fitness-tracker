@@ -10,6 +10,7 @@ from app.db.models.exercise import (
     Muscle,
     exercise_secondary_muscles,
 )
+from app.db.models.routine import Routine, RoutineExercise, RoutineFolder, RoutineSet, SetType
 from app.db.models.user import (
     ActivityLevel,
     AuthProvider,
@@ -37,6 +38,11 @@ __all__ = [
     "LengthUnit",
     "Muscle",
     "RefreshToken",
+    "Routine",
+    "RoutineExercise",
+    "RoutineFolder",
+    "RoutineSet",
+    "SetType",
     "Sex",
     "Theme",
     "User",

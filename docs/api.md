@@ -308,3 +308,129 @@ The copy keeps the type, equipment, muscles, instructions and media.
 14 types. `increment_kg` is the smallest load step the overload coach suggests; `null` means progress by reps (bodyweight, bands, suspension trainer).
 
 Both lists carry an `ETag` tied to the library version and answer `If-None-Match` with **304**.
+
+---
+
+## Routines
+
+All routine endpoints need `Authorization: Bearer <access_token>`. Routines and folders belong to one user; another user's IDs answer **404**.
+
+A routine is a workout template. It is written **as a whole**: its exercises and sets are always sent and returned together, and `version` goes up by one per real change. Routines are ordered by `position` within their folder (or among routines with no folder); folders are ordered by their own `position`. Positions may have gaps; only their order matters.
+
+**Free-tier limit:** a free account keeps up to `FREE_ROUTINE_LIMIT` routines (default 4); Pro is unlimited. Creating or duplicating past the limit returns **403** `routine_limit_reached` with `details: {"limit": 4}`. Deleting a routine frees a slot.
+
+### Routine object
+```json
+{
+  "id": "5d0c…",
+  "folder_id": null,
+  "name": "Push Day",
+  "notes": "Bench first.",
+  "position": 0,
+  "exercises": [
+    {
+      "exercise_id": "e7b40f5a-46df-5073-9161-a5081fb0e120",
+      "exercise_name": "Bench Press (Barbell)",
+      "exercise_type": "weight_reps",
+      "superset_group": null,
+      "rest_seconds": 180,
+      "rep_range_min": 6,
+      "rep_range_max": 10,
+      "notes": "Pause the first rep",
+      "sets": [
+        {"set_type": "warmup", "target_weight_kg": 40.0, "target_reps": 10, "target_duration_s": null},
+        {"set_type": "normal", "target_weight_kg": 80.0, "target_reps": 8, "target_duration_s": null}
+      ]
+    }
+  ],
+  "version": 1,
+  "created_at": "2026-10-27T09:00:00Z", "updated_at": "2026-10-27T09:00:00Z"
+}
+```
+- `exercise_name` and `exercise_type` are read from the exercise, so a routine still reads well after a custom exercise is deleted.
+- `superset_group`: adjacent exercises with the same number form a superset. The server renumbers groups `1, 2, …` in order and turns a one-exercise group into `null`.
+- `rest_seconds`: 0–900, or `null` for the user's default rest (`/me/settings` `default_rest_s`).
+- `rep_range_min` / `rep_range_max`: 1–100 each, min ≤ max; either may be `null`. The overload coach (Phase 7) uses them.
+- `set_type`: `warmup`, `normal`, `drop` or `failure`. `target_weight_kg` 0–1000 (rounded half-up to 0.01), `target_reps` 0–1000, `target_duration_s` 0–86400. Send only the targets that fit the exercise type.
+- Up to 50 exercises per routine and 30 sets per exercise. `name` 1–80 characters (inner whitespace collapsed), `notes` up to 2000.
+
+### `GET /v1/routines`
+Every routine of the caller, in `position` order (the app groups them by `folder_id`). Not paginated: the app mirrors the whole set.
+
+**200**
+```json
+{"items": [ /* routine objects */ ], "routine_limit": 4}
+```
+`routine_limit` is `null` for Pro accounts.
+
+### `POST /v1/routines`
+```json
+{
+  "id": "optional client-generated UUID",
+  "name": "Push Day",
+  "notes": "",
+  "folder_id": null,
+  "exercises": [
+    {"exercise_id": "…", "rest_seconds": 120, "rep_range_min": 8, "rep_range_max": 12,
+     "superset_group": null, "notes": "", "sets": [{"set_type": "normal", "target_reps": 10}]}
+  ]
+}
+```
+Everything but `name` is optional. The routine is placed last in its folder. Exercises must be library exercises (archived ones included) or the caller's own custom exercises.
+
+**201** routine object · **403** `routine_limit_reached` · **409** `routine_exists` · **422** `validation_error` (an unknown exercise is reported at `["body", "exercises", i, "exercise_id"]`, a superset whose members aren't adjacent at `["body", "exercises", i, "superset_group"]`, an unknown folder at `["body", "folder_id"]`)
+
+### `GET /v1/routines/{id}`
+**200** routine object · **404**
+
+### `PATCH /v1/routines/{id}`
+Any subset of `name`, `notes`, `folder_id` (`null` takes it out of its folder) and `exercises`. `exercises`, when sent, **replaces the whole list**. Moving to another folder places the routine last there. Re-sending the current content is not a change and leaves `version` alone. A custom exercise that was deleted may stay in a routine that already has it, but can't be added to another.
+
+**200** routine object · **404** · **422**
+
+### `DELETE /v1/routines/{id}`
+Soft delete.
+
+**204** · **404**
+
+### `POST /v1/routines/{id}/duplicate`
+Optional body: `{"id": "client UUID", "name": "defaults to '<name> (Copy)'"}`. The copy keeps the folder, notes, exercises and sets, and is placed last in the folder. Counts against the free-tier limit.
+
+**201** routine object · **403** `routine_limit_reached` · **404** · **409** `routine_exists`
+
+### `POST /v1/routines/reorder`
+```json
+{"folder_id": null, "routine_ids": ["…", "…"]}
+```
+Puts the listed routines into `folder_id` (`null` = no folder) at positions `0, 1, …`, moving them from other folders if needed. Routines already in that folder but not listed follow, in their previous order. Each routine that moved gets a new `version`.
+
+**200** `{"items": [...], "routine_limit": …}` (same as `GET /v1/routines`) · **422** (unknown routine at `["body", "routine_ids", i]`, unknown folder, duplicate IDs)
+
+### Folder object
+```json
+{"id": "…", "name": "Upper body", "position": 0, "version": 1,
+ "created_at": "2026-10-27T09:00:00Z", "updated_at": "2026-10-27T09:00:00Z"}
+```
+
+### `GET /v1/routine-folders`
+**200** list of folder objects in `position` order.
+
+### `POST /v1/routine-folders`
+`{"id": "optional client UUID", "name": "Upper body"}` (1–60 characters). Placed last.
+
+**201** folder object · **409** `folder_exists` · **422**
+
+### `PATCH /v1/routine-folders/{id}`
+`{"name": "Push"}`
+
+**200** folder object · **404** · **422**
+
+### `DELETE /v1/routine-folders/{id}`
+Soft-deletes the folder. Its routines are **kept**: they move out of the folder, to the end of the routines without one.
+
+**204** · **404**
+
+### `POST /v1/routine-folders/reorder`
+`{"folder_ids": ["…"]}`. Listed folders first, in that order; the rest keep their order after them.
+
+**200** list of folder objects · **422** (unknown folder at `["body", "folder_ids", i]`)

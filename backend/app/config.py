@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     apple_client_ids: list[str] = []
     jwks_cache_ttl_s: int = 12 * 3600
 
+    # --- Pro limits (PLAN.md G5) --------------------------------------------
+    free_routine_limit: int = 4
+
     @model_validator(mode="after")
     def _require_real_secret_in_prod(self) -> Self:
         if self.environment == "prod" and (
