@@ -1,6 +1,6 @@
-import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import type { ExerciseType, Routine, RoutineFolder } from '@/api/types';
+import type { ExerciseType, Routine, RoutineFolder, SetType, WorkoutVisibility } from '@/api/types';
 import type { ActiveWorkout } from '@/workout/types';
 
 /** Key/value store for sync cursors, ETags and other device-local bookkeeping. */
@@ -69,3 +69,68 @@ export const activeWorkout = sqliteTable('active_workout', {
   payload: text('payload', { mode: 'json' }).$type<ActiveWorkout>().notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 });
+
+// --- finished workouts (history) ---------------------------------------------------------
+// Written when a workout is finished; mirrors the server's tables so Phase 4 can sync them.
+// Times are epoch ms. Only completed sets are stored.
+
+export const workouts = sqliteTable(
+  'workouts',
+  {
+    id: text('id').primaryKey(),
+    routineId: text('routine_id'),
+    title: text('title').notNull(),
+    notes: text('notes').notNull(),
+    startedAt: integer('started_at').notNull(),
+    endedAt: integer('ended_at').notNull(),
+    visibility: text('visibility').$type<WorkoutVisibility>().notNull(),
+    totalVolumeKg: real('total_volume_kg').notNull(),
+    totalSets: integer('total_sets').notNull(),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+    deletedAt: integer('deleted_at'),
+    /** Null until the server has it (Phase 4 sync). */
+    syncedAt: integer('synced_at'),
+  },
+  (t) => [index('workouts_started_at_idx').on(t.startedAt)],
+);
+
+export const workoutExercises = sqliteTable(
+  'workout_exercises',
+  {
+    id: text('id').primaryKey(),
+    workoutId: text('workout_id')
+      .notNull()
+      .references(() => workouts.id, { onDelete: 'cascade' }),
+    exerciseId: text('exercise_id').notNull(),
+    /** Snapshot, so history reads well after an exercise is renamed or deleted. */
+    name: text('name').notNull(),
+    exerciseType: text('exercise_type').$type<ExerciseType>().notNull(),
+    position: integer('position').notNull(),
+    supersetGroup: integer('superset_group'),
+    notes: text('notes').notNull(),
+  },
+  (t) => [
+    index('workout_exercises_workout_id_idx').on(t.workoutId),
+    index('workout_exercises_exercise_id_idx').on(t.exerciseId),
+  ],
+);
+
+export const workoutSets = sqliteTable(
+  'workout_sets',
+  {
+    id: text('id').primaryKey(),
+    workoutExerciseId: text('workout_exercise_id')
+      .notNull()
+      .references(() => workoutExercises.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    setType: text('set_type').$type<SetType>().notNull(),
+    weightKg: real('weight_kg'),
+    reps: integer('reps'),
+    durationS: integer('duration_s'),
+    distanceM: real('distance_m'),
+    rpe: real('rpe'),
+    completed: integer('completed', { mode: 'boolean' }).notNull(),
+  },
+  (t) => [index('workout_sets_workout_exercise_id_idx').on(t.workoutExerciseId)],
+);

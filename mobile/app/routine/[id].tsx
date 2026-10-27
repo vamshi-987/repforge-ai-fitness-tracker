@@ -10,6 +10,7 @@ import { ROUTINES_QUERY_KEY, useRoutines } from '@/routines/store';
 import { exerciseSummary } from '@/routines/view';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/theme/useTheme';
+import { startRoutineWorkout } from '@/workout/start';
 
 type Busy = 'duplicate' | 'delete' | 'move' | null;
 
@@ -132,6 +133,7 @@ export default function RoutineDetailScreen() {
       {error ? <Text style={[typography.body, { color: colors.danger }]}>{error}</Text> : null}
 
       <View style={{ gap: spacing.sm }}>
+        <Button label="Start routine" onPress={() => startRoutineWorkout(routine)} />
         <Button
           label="Edit routine"
           variant="secondary"
