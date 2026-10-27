@@ -8,6 +8,7 @@ import { destination } from '@/auth/destination';
 import { DatabaseProvider } from '@/db/DatabaseProvider';
 import { forgetUserExercises } from '@/exercises/library';
 import { forgetRoutines } from '@/routines/store';
+import { forgetActiveWorkout } from '@/stores/activeWorkout';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/theme/useTheme';
 
@@ -29,6 +30,7 @@ export default function RootLayout() {
           queryClient.clear();
           forgetUserExercises().catch(() => undefined);
           forgetRoutines().catch(() => undefined);
+          forgetActiveWorkout().catch(() => undefined);
         }
       }),
     [queryClient],

@@ -13,6 +13,12 @@ import type {
 } from '@/api/types';
 import { formatDuration, parseDuration } from '@/lib/format';
 import { setInputs } from '@/lib/sets';
+import {
+  isLinkedWithNext as linkedWithNext,
+  moveKeepingSupersets,
+  toggleLinkWithNext,
+  withRepairedSupersets,
+} from '@/lib/supersets';
 import { displayWeight, parseDecimal, weightToKg } from '@/lib/units';
 
 // Server limits (docs/api.md § Routines).
@@ -105,76 +111,17 @@ function mapExercise(
   return { ...draft, exercises: draft.exercises.map((e) => (e.key === key ? change(e) : e)) };
 }
 
-// --- supersets --------------------------------------------------------------------------
-
-/**
- * Renumber superset groups 1, 2, … in order. A group that reappears after a different
- * exercise starts a new group, and one-exercise groups are dropped. Same numbering as the
- * server's `normalize_supersets`, but it repairs instead of rejecting.
- */
-export function repairSupersets(groups: (number | null)[]): (number | null)[] {
-  const runs: { group: number | null; start: number; end: number }[] = [];
-  groups.forEach((group, index) => {
-    const last = runs[runs.length - 1];
-    if (last && group !== null && last.group === group) last.end = index + 1;
-    else runs.push({ group, start: index, end: index + 1 });
-  });
-  const result: (number | null)[] = groups.map(() => null);
-  let next = 1;
-  for (const run of runs) {
-    if (run.group === null || run.end - run.start < 2) continue;
-    for (let i = run.start; i < run.end; i += 1) result[i] = next;
-    next += 1;
-  }
-  return result;
-}
-
-function withRepairedSupersets(exercises: DraftExercise[]): DraftExercise[] {
-  const groups = repairSupersets(exercises.map((e) => e.supersetGroup));
-  return exercises.map((e, i) =>
-    e.supersetGroup === groups[i] ? e : { ...e, supersetGroup: groups[i] ?? null },
-  );
-}
+// --- supersets (rules in src/lib/supersets.ts) -----------------------------------------
 
 export function isLinkedWithNext(draft: RoutineDraft, index: number): boolean {
-  const current = draft.exercises[index];
-  const next = draft.exercises[index + 1];
-  return Boolean(
-    current &&
-    next &&
-    current.supersetGroup !== null &&
-    current.supersetGroup === next.supersetGroup,
-  );
+  return linkedWithNext(draft.exercises, index);
 }
 
 /** Link an exercise with the one below it into a superset, or split them apart. */
 export function toggleSupersetWithNext(draft: RoutineDraft, key: string): RoutineDraft {
   const index = draft.exercises.findIndex((e) => e.key === key);
-  const current = draft.exercises[index];
-  const next = draft.exercises[index + 1];
-  if (!current || !next) return draft;
-
-  const fresh = Math.max(0, ...draft.exercises.map((e) => e.supersetGroup ?? 0)) + 1;
-  const exercises = [...draft.exercises];
-  if (isLinkedWithNext(draft, index)) {
-    // Split: everything after this boundary in the same run becomes its own group.
-    for (let i = index + 1; i < exercises.length; i += 1) {
-      const e = exercises[i] as DraftExercise;
-      if (e.supersetGroup !== current.supersetGroup) break;
-      exercises[i] = { ...e, supersetGroup: fresh };
-    }
-  } else {
-    const group = current.supersetGroup ?? next.supersetGroup ?? fresh;
-    exercises[index] = { ...current, supersetGroup: group };
-    // The whole run below joins, so linking into an existing superset keeps it together.
-    const below = next.supersetGroup;
-    for (let i = index + 1; i < exercises.length; i += 1) {
-      const e = exercises[i] as DraftExercise;
-      if (i > index + 1 && (below === null || e.supersetGroup !== below)) break;
-      exercises[i] = { ...e, supersetGroup: group };
-    }
-  }
-  return { ...draft, exercises: withRepairedSupersets(exercises) };
+  const exercises = toggleLinkWithNext(draft.exercises, index);
+  return exercises === draft.exercises ? draft : { ...draft, exercises };
 }
 
 // --- exercises --------------------------------------------------------------------------
@@ -206,34 +153,11 @@ export function removeExercise(draft: RoutineDraft, key: string): RoutineDraft {
   };
 }
 
-/**
- * Move an exercise one place. Inside its own superset it swaps with its neighbour. Otherwise
- * it leaves its superset and jumps over the neighbouring superset as a whole, so moving never
- * breaks another superset apart.
- */
+/** Move an exercise one place without breaking any superset apart. */
 export function moveExercise(draft: RoutineDraft, key: string, delta: -1 | 1): RoutineDraft {
-  const list = draft.exercises;
-  const index = list.findIndex((e) => e.key === key);
-  const current = list[index];
-  const neighbour = list[index + delta];
-  if (!current || !neighbour) return draft;
-
-  const exercises = [...list];
-  if (current.supersetGroup !== null && current.supersetGroup === neighbour.supersetGroup) {
-    exercises[index] = neighbour;
-    exercises[index + delta] = current;
-    return { ...draft, exercises };
-  }
-
-  // The neighbouring block: one exercise, or its whole superset.
-  let far = index + delta;
-  if (neighbour.supersetGroup !== null) {
-    while (exercises[far + delta]?.supersetGroup === neighbour.supersetGroup) far += delta;
-  }
-  // Removing it shifts a block below up by one, so `far` is the slot past the block either way.
-  exercises.splice(index, 1);
-  exercises.splice(far, 0, { ...current, supersetGroup: null });
-  return { ...draft, exercises: withRepairedSupersets(exercises) };
+  const index = draft.exercises.findIndex((e) => e.key === key);
+  const exercises = moveKeepingSupersets(draft.exercises, index, delta);
+  return exercises === draft.exercises ? draft : { ...draft, exercises };
 }
 
 export function updateExercise(
