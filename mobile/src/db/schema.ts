@@ -1,6 +1,13 @@
-import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import type { ExerciseType, Routine, RoutineFolder, SetType, WorkoutVisibility } from '@/api/types';
+import type {
+  ExerciseType,
+  RecordType,
+  Routine,
+  RoutineFolder,
+  SetType,
+  WorkoutVisibility,
+} from '@/api/types';
 import type { ActiveWorkout } from '@/workout/types';
 
 /** Key/value store for sync cursors, ETags and other device-local bookkeeping. */
@@ -133,4 +140,40 @@ export const workoutSets = sqliteTable(
     completed: integer('completed', { mode: 'boolean' }).notNull(),
   },
   (t) => [index('workout_sets_workout_exercise_id_idx').on(t.workoutExerciseId)],
+);
+
+/** Sets per muscle in a workout (primary 1, secondary 0.5), for the stats heat map. */
+export const workoutMuscleSets = sqliteTable(
+  'workout_muscle_sets',
+  {
+    workoutId: text('workout_id')
+      .notNull()
+      .references(() => workouts.id, { onDelete: 'cascade' }),
+    muscle: text('muscle').notNull(),
+    sets: real('sets').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.workoutId, t.muscle] })],
+);
+
+/** Every record a set or session reached; the best per (exercise, type) is the current PR. */
+export const personalRecords = sqliteTable(
+  'personal_records',
+  {
+    id: text('id').primaryKey(),
+    exerciseId: text('exercise_id').notNull(),
+    recordType: text('record_type').$type<RecordType>().notNull(),
+    value: real('value').notNull(),
+    workoutId: text('workout_id')
+      .notNull()
+      .references(() => workouts.id, { onDelete: 'cascade' }),
+    /** Null for records over a whole session (session volume). */
+    workoutSetId: text('workout_set_id'),
+    /** The best before this one; null when this was the first (a baseline, not a PR). */
+    previousValue: real('previous_value'),
+    achievedAt: integer('achieved_at').notNull(),
+  },
+  (t) => [
+    index('personal_records_exercise_id_idx').on(t.exerciseId, t.recordType),
+    index('personal_records_workout_id_idx').on(t.workoutId),
+  ],
 );

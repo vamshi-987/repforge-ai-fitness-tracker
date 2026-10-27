@@ -58,6 +58,7 @@ describe('previousSets', () => {
       saved('w', 1, [
         makeWorkoutExercise({ exerciseId: 'bench', sets: [makeSet({ completed: true })] }),
       ]),
+      { muscleSets: {}, records: [] },
     );
 
     expect(Object.keys(await repo.previousSets(['bench']))).toEqual(['bench']);

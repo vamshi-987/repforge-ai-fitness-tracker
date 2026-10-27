@@ -9,7 +9,7 @@ import { useTheme } from '@/theme/useTheme';
 import { nextSet } from '@/workout/model';
 import { remainingSeconds } from '@/workout/rest';
 import { describeSet } from '@/workout/setValues';
-import { ACTIVE_WORKOUT_PATH, openActiveWorkout } from '@/workout/start';
+import { ACTIVE_WORKOUT_PATH, FINISH_WORKOUT_PATH, openActiveWorkout } from '@/workout/start';
 import { elapsedMs, formatElapsed } from '@/workout/time';
 
 /** Pinned above the tab bar on every tab while a workout is in progress. */
@@ -20,7 +20,7 @@ export function MiniWorkoutBar() {
   const pathname = usePathname();
   const now = useNow(1000, workout !== null);
 
-  if (!workout || pathname === ACTIVE_WORKOUT_PATH) return null;
+  if (!workout || pathname === ACTIVE_WORKOUT_PATH || pathname === FINISH_WORKOUT_PATH) return null;
   const next = nextSet(workout);
   const elapsed = formatElapsed(elapsedMs(workout.startedAt, now));
 

@@ -16,11 +16,12 @@ import { useRestTimer } from '@/stores/timer';
 import { useTheme } from '@/theme/useTheme';
 import { usePreviousSets } from '@/workout/historyStore';
 import { addExercises, rename, workoutStats } from '@/workout/model';
-import { confirmDiscard } from '@/workout/prompts';
+import { finishCheck } from '@/workout/finish';
+import { confirmDiscard, confirmFinish } from '@/workout/prompts';
 import { restAfterSet } from '@/workout/rest';
 import type { Units } from '@/workout/setValues';
 import type { WorkoutExercise } from '@/workout/types';
-import { startEmptyWorkout } from '@/workout/start';
+import { FINISH_WORKOUT_PATH, startEmptyWorkout } from '@/workout/start';
 import { elapsedMs, formatElapsed } from '@/workout/time';
 import { useKeepAwakeWhileFocused } from '@/workout/useKeepAwakeWhileFocused';
 
@@ -85,6 +86,14 @@ export default function ActiveWorkoutScreen() {
     const seconds = current ? restAfterSet(current, exercise.id, defaultRestS) : 0;
     if (seconds > 0) useRestTimer.getState().start(seconds, exercise.name, Date.now());
   };
+  const finish = () =>
+    confirmFinish(finishCheck(workout), {
+      onFinish: () => router.push(FINISH_WORKOUT_PATH),
+      onDiscard: () => {
+        end();
+        leave();
+      },
+    });
   const discard = () =>
     confirmDiscard(() => {
       end();
@@ -120,6 +129,20 @@ export default function ActiveWorkoutScreen() {
         <View style={styles.flex}>
           <ElapsedClock startedAt={workout.startedAt} />
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Finish workout"
+          onPress={finish}
+          hitSlop={8}
+          style={{
+            backgroundColor: colors.success,
+            borderRadius: radius.md,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.sm,
+          }}
+        >
+          <Text style={[typography.body, styles.bold, { color: '#FFFFFF' }]}>Finish</Text>
+        </Pressable>
       </View>
 
       <View
