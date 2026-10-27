@@ -27,3 +27,31 @@ export function confirmDiscard(onConfirm: () => void): void {
     { text: 'Discard', style: 'destructive', onPress: onConfirm },
   ]);
 }
+
+interface FinishChoice {
+  onFinish: () => void;
+  onDiscard: () => void;
+}
+
+/** Finish straight away, or say what is missing first. */
+export function confirmFinish(
+  check: { completedSets: number; unfinishedSets: number },
+  choice: FinishChoice,
+): void {
+  if (check.completedSets === 0) {
+    Alert.alert('Nothing logged yet', 'Tick at least one set to finish, or discard this workout.', [
+      { text: 'Keep logging', style: 'cancel' },
+      { text: 'Discard workout', style: 'destructive', onPress: choice.onDiscard },
+    ]);
+    return;
+  }
+  if (check.unfinishedSets > 0) {
+    const sets = check.unfinishedSets === 1 ? '1 set isn’t' : `${check.unfinishedSets} sets aren’t`;
+    Alert.alert(`${sets} ticked`, 'Only ticked sets are saved.', [
+      { text: 'Keep logging', style: 'cancel' },
+      { text: 'Finish anyway', onPress: choice.onFinish },
+    ]);
+    return;
+  }
+  choice.onFinish();
+}

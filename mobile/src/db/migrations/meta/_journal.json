@@ -36,6 +36,13 @@
       "when": 1793089399680,
       "tag": "0004_condemned_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793091232065,
+      "tag": "0005_fuzzy_prodigy",
+      "breakpoints": true
     }
   ]
 }

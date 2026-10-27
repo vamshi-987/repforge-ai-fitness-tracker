@@ -6,6 +6,7 @@ import m0001 from './0001_unknown_hiroim.sql';
 import m0002 from './0002_parallel_prima.sql';
 import m0003 from './0003_demonic_imperial_guard.sql';
 import m0004 from './0004_condemned_serpent_society.sql';
+import m0005 from './0005_fuzzy_prodigy.sql';
 
   export default {
     journal,
@@ -14,7 +15,8 @@ import m0004 from './0004_condemned_serpent_society.sql';
 m0001,
 m0002,
 m0003,
-m0004
+m0004,
+m0005
     }
   }
   

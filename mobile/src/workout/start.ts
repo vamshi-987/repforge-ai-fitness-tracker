@@ -9,6 +9,8 @@ import { startEmpty, startFromRoutine } from './model';
 import type { ActiveWorkout } from './types';
 
 export const ACTIVE_WORKOUT_PATH = '/workout/active';
+export const FINISH_WORKOUT_PATH = '/workout/finish';
+export const SUMMARY_PATH = '/workout/summary';
 
 export function openActiveWorkout(): void {
   router.push(ACTIVE_WORKOUT_PATH);

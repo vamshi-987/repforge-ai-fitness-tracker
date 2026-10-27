@@ -1,7 +1,8 @@
-import { makeSet } from '@/test/workouts';
+import { makeSet, makeWorkoutExercise } from '@/test/workouts';
 
 import type { PreviousSet } from '../history';
 import {
+  bestSetLabel,
   describeSet,
   distanceToMeters,
   fillFromPrevious,
@@ -73,5 +74,33 @@ describe('describeSet', () => {
     ['3', 'Set 3'],
   ])('%s → %s', (label, expected) => {
     expect(describeSet(label)).toBe(expected);
+  });
+});
+
+describe('bestSetLabel', () => {
+  it('names the set with the most volume, or the most reps', () => {
+    const heavy = makeWorkoutExercise({
+      sets: [
+        makeSet({ type: 'warmup', weightKg: 40, reps: 10, completed: true }),
+        makeSet({ weightKg: 100, reps: 5, completed: true }),
+        makeSet({ weightKg: 80, reps: 8, completed: true }),
+      ],
+    });
+    const pushups = makeWorkoutExercise({
+      type: 'bodyweight_reps',
+      sets: [
+        makeSet({ weightKg: null, reps: 20, completed: true }),
+        makeSet({ weightKg: null, reps: 25, completed: true }),
+      ],
+    });
+    const plank = makeWorkoutExercise({
+      type: 'duration',
+      sets: [makeSet({ reps: null, durationS: 90, completed: true })],
+    });
+
+    expect(bestSetLabel(heavy, KG)).toBe('Best: 80 kg × 8');
+    expect(bestSetLabel(pushups, KG)).toBe('Best: × 25');
+    expect(bestSetLabel(plank, KG)).toBe('Best: 1:30');
+    expect(bestSetLabel(makeWorkoutExercise({ sets: [] }), KG)).toBeNull();
   });
 });

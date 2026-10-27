@@ -7,7 +7,8 @@ import { roundTo, displayWeight } from '@/lib/units';
 import { setInputs } from '@/lib/sets';
 
 import type { PreviousSet } from './history';
-import type { WorkoutSet } from './types';
+import { exerciseBests } from './records';
+import type { WorkoutExercise, WorkoutSet } from './types';
 
 export const METERS_PER_MILE = 1609.344; // exact, by definition
 
@@ -77,3 +78,13 @@ export function describeSet(label: string): string {
 
 /** RPE choices: 6 to 10 in half steps. */
 export const RPE_VALUES: readonly number[] = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
+
+/** "Best: 100 kg × 5" — the set with the most volume (or reps); null without working sets. */
+export function bestSetLabel(exercise: WorkoutExercise, units: Units): string | null {
+  const bests = exerciseBests(exercise.type, exercise.sets);
+  const setId = (bests.best_set_volume ?? bests.most_reps)?.setId;
+  const set =
+    exercise.sets.find((s) => s.id === setId) ??
+    exercise.sets.find((s) => s.completed && s.type !== 'warmup');
+  return set ? `Best: ${formatPrevious(exercise.type, set, units)}` : null;
+}

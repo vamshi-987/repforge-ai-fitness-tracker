@@ -1,4 +1,4 @@
-import { elapsedMs, formatAgo, formatElapsed } from '../time';
+import { elapsedMs, formatAgo, formatDurationWords, formatElapsed } from '../time';
 
 describe('elapsed time', () => {
   it('is derived from the start time and never negative', () => {
@@ -23,5 +23,15 @@ describe('elapsed time', () => {
     [120 * 60_000, '2 h ago'],
   ])('%p ms → %p', (ms, expected) => {
     expect(formatAgo(ms)).toBe(expected);
+  });
+});
+
+describe('formatDurationWords', () => {
+  it.each([
+    [45 * 60_000, '45 min'],
+    [65 * 60_000, '1 h 5 min'],
+    [120 * 60_000, '2 h'],
+  ])('%p ms → %p', (ms, expected) => {
+    expect(formatDurationWords(ms)).toBe(expected);
   });
 });

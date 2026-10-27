@@ -19,3 +19,12 @@ export function formatAgo(ms: number): string {
   const rest = minutes % 60;
   return rest ? `${hours} h ${rest} min ago` : `${hours} h ago`;
 }
+
+/** "45 min", "1 h 5 min", "2 h". */
+export function formatDurationWords(ms: number): string {
+  const minutes = Math.round(Math.max(0, ms) / 60_000);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}

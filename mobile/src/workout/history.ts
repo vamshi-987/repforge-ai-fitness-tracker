@@ -1,5 +1,6 @@
-import type { SetType, WorkoutVisibility } from '@/api/types';
+import type { RecordType, SetType, WorkoutVisibility } from '@/api/types';
 
+import type { PreviousBests, RecordEntry } from './records';
 import type { WorkoutExercise } from './types';
 
 /** A finished workout as stored on the device (only completed sets). */
@@ -25,11 +26,23 @@ export interface PreviousSet {
   distanceM: number | null;
 }
 
+/** What is stored alongside a finished workout. */
+export interface WorkoutExtras {
+  /** Muscle slug → sets (primary 1, secondary 0.5). */
+  muscleSets: Record<string, number>;
+  /** Records reached in this workout (new bests only). */
+  records: RecordEntry[];
+}
+
 /** The device's workout history. SQLite in the app, in memory in tests. */
 export interface HistoryRepo {
   /** Exercise id → the sets of the latest finished workout that included it, in order. */
   previousSets(exerciseIds: string[]): Promise<Record<string, PreviousSet[]>>;
-  save(workout: SavedWorkout): Promise<void>;
+  /** Exercise id → the best value stored for each record type. */
+  bestRecords(exerciseIds: string[]): Promise<PreviousBests>;
+  /** Save a finished workout and its extras, all or nothing. */
+  save(workout: SavedWorkout, extras: WorkoutExtras): Promise<void>;
+  load(workoutId: string): Promise<(SavedWorkout & WorkoutExtras) | null>;
 }
 
 const toPrevious = ({ type, weightKg, reps, durationS, distanceM }: PreviousSet): PreviousSet => ({
@@ -41,9 +54,13 @@ const toPrevious = ({ type, weightKg, reps, durationS, distanceM }: PreviousSet)
 });
 
 export function createMemoryHistoryRepo(initial: SavedWorkout[] = []): HistoryRepo & {
-  workouts: SavedWorkout[];
+  workouts: (SavedWorkout & WorkoutExtras)[];
 } {
-  const workouts = [...initial];
+  const workouts: (SavedWorkout & WorkoutExtras)[] = initial.map((w) => ({
+    ...w,
+    muscleSets: {},
+    records: [],
+  }));
   return {
     workouts,
     async previousSets(exerciseIds) {
@@ -60,8 +77,23 @@ export function createMemoryHistoryRepo(initial: SavedWorkout[] = []): HistoryRe
       }
       return result;
     },
-    async save(workout) {
-      workouts.push(workout);
+    async bestRecords(exerciseIds) {
+      const wanted = new Set(exerciseIds);
+      const bests: PreviousBests = {};
+      for (const record of workouts.flatMap((w) => w.records)) {
+        if (!wanted.has(record.exerciseId)) continue;
+        const forExercise = (bests[record.exerciseId] ??= {});
+        const type: RecordType = record.type;
+        forExercise[type] = Math.max(forExercise[type] ?? 0, record.value);
+      }
+      return bests;
+    },
+    async save(workout, extras) {
+      // JSON round trip, like SQLite: callers can't keep a live reference into the store.
+      workouts.push(JSON.parse(JSON.stringify({ ...workout, ...extras })));
+    },
+    async load(workoutId) {
+      return workouts.find((w) => w.id === workoutId) ?? null;
     },
   };
 }

@@ -224,3 +224,5 @@ export type RoutineUpdate = Partial<Omit<RoutineCreate, 'id'>>;
 // --- workouts ---------------------------------------------------------------------------
 
 export type WorkoutVisibility = 'public' | 'followers' | 'private';
+
+export type RecordType = 'heaviest' | 'e1rm' | 'best_set_volume' | 'session_volume' | 'most_reps';
