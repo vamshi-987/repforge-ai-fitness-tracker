@@ -24,6 +24,15 @@ from app.db.models.user import (
     UserSettings,
     WeightUnit,
 )
+from app.db.models.workout import (
+    PersonalRecord,
+    RecordType,
+    Workout,
+    WorkoutExercise,
+    WorkoutSet,
+    WorkoutVisibility,
+    workout_muscle_sets,
+)
 
 __all__ = [
     "ActivityLevel",
@@ -37,6 +46,8 @@ __all__ = [
     "Goal",
     "LengthUnit",
     "Muscle",
+    "PersonalRecord",
+    "RecordType",
     "RefreshToken",
     "Routine",
     "RoutineExercise",
@@ -50,5 +61,10 @@ __all__ = [
     "UserSettings",
     "WeightSource",
     "WeightUnit",
+    "Workout",
+    "WorkoutExercise",
+    "WorkoutSet",
+    "WorkoutVisibility",
     "exercise_secondary_muscles",
+    "workout_muscle_sets",
 ]
