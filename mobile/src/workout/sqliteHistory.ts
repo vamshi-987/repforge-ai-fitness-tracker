@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, max } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, max, ne } from 'drizzle-orm';
 
 import { db } from '@/db/client';
 import {
@@ -121,7 +121,7 @@ export const sqliteHistoryRepo: HistoryRepo = {
     return result;
   },
 
-  async bestRecords(exerciseIds) {
+  async bestRecords(exerciseIds, exceptWorkoutId) {
     const bests: PreviousBests = {};
     if (exerciseIds.length === 0) return bests;
     const rows = db
@@ -131,7 +131,12 @@ export const sqliteHistoryRepo: HistoryRepo = {
         value: max(personalRecords.value),
       })
       .from(personalRecords)
-      .where(inArray(personalRecords.exerciseId, [...new Set(exerciseIds)]))
+      .where(
+        and(
+          inArray(personalRecords.exerciseId, [...new Set(exerciseIds)]),
+          exceptWorkoutId ? ne(personalRecords.workoutId, exceptWorkoutId) : undefined,
+        ),
+      )
       .groupBy(personalRecords.exerciseId, personalRecords.recordType)
       .all();
     for (const row of rows) {
@@ -216,6 +221,63 @@ export const sqliteHistoryRepo: HistoryRepo = {
 
   async save(workout, extras) {
     db.transaction((tx) => insertWorkout(tx, workout, extras, { version: 0, syncedAt: null }));
+  },
+
+  async list() {
+    const rows = db
+      .select()
+      .from(workouts)
+      .where(isNull(workouts.deletedAt))
+      .orderBy(desc(workouts.startedAt))
+      .all();
+    const names = new Map<string, string[]>();
+    for (const e of db
+      .select({ workoutId: workoutExercises.workoutId, name: workoutExercises.name })
+      .from(workoutExercises)
+      .orderBy(asc(workoutExercises.position))
+      .all()) {
+      names.set(e.workoutId, [...(names.get(e.workoutId) ?? []), e.name]);
+    }
+    const prs = new Map(
+      db
+        .select({ workoutId: personalRecords.workoutId, n: count() })
+        .from(personalRecords)
+        .where(isNotNull(personalRecords.previousValue))
+        .groupBy(personalRecords.workoutId)
+        .all()
+        .map((row) => [row.workoutId, row.n]),
+    );
+    return rows.map((w) => ({
+      id: w.id,
+      title: w.title,
+      startedAt: w.startedAt,
+      endedAt: w.endedAt,
+      volumeKg: w.totalVolumeKg,
+      setCount: w.totalSets,
+      exerciseNames: names.get(w.id) ?? [],
+      prCount: prs.get(w.id) ?? 0,
+    }));
+  },
+
+  async syncInfo(workoutId) {
+    const row = db
+      .select({ version: workouts.version, syncedAt: workouts.syncedAt })
+      .from(workouts)
+      .where(eq(workouts.id, workoutId))
+      .get();
+    return row ?? null;
+  },
+
+  async replace(workout, extras) {
+    db.transaction((tx) => {
+      const sync = tx
+        .select({ version: workouts.version, syncedAt: workouts.syncedAt })
+        .from(workouts)
+        .where(eq(workouts.id, workout.id))
+        .get() ?? { version: 0, syncedAt: null };
+      tx.delete(workouts).where(eq(workouts.id, workout.id)).run();
+      insertWorkout(tx, workout, extras, sync);
+    });
   },
 
   async putServerWorkout(workout) {

@@ -75,6 +75,10 @@ export default function RootLayout() {
             />
             <Stack.Screen name="routine/[id]" options={{ ...header, title: '' }} />
             <Stack.Screen name="routine/edit" options={{ ...header, title: 'Routine' }} />
+            <Stack.Screen name="history/index" options={{ ...header, title: 'Workouts' }} />
+            <Stack.Screen name="history/[id]" options={{ ...header, title: '' }} />
+            <Stack.Screen name="history/edit" options={{ ...header, title: 'Edit workout' }} />
+            <Stack.Screen name="history/calendar" options={{ ...header, title: 'Calendar' }} />
           </Stack.Protected>
           {/* Login/register and onboarding; app/(auth)/_layout.tsx guards each part. */}
           <Stack.Protected guard={where === 'login' || where === 'onboarding'}>

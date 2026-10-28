@@ -20,7 +20,7 @@ import {
   resolveTimes,
   type FinishTimeErrors,
 } from '@/workout/finishForm';
-import { PREVIOUS_SETS_KEY } from '@/workout/historyStore';
+import { HISTORY_QUERY_KEY, PREVIOUS_SETS_KEY } from '@/workout/historyStore';
 import { saveFinishedWorkout } from '@/workout/saveWorkout';
 import { SUMMARY_PATH } from '@/workout/start';
 import type { ActiveWorkout } from '@/workout/types';
@@ -98,6 +98,7 @@ function FinishForm({ workout }: { workout: ActiveWorkout }) {
       const saved = toSavedWorkout(workout, { title, notes, visibility, ...times });
       await saveFinishedWorkout(saved, library.data?.exercises ?? []);
       await queryClient.invalidateQueries({ queryKey: [PREVIOUS_SETS_KEY] });
+      await queryClient.invalidateQueries({ queryKey: HISTORY_QUERY_KEY });
       useActiveWorkout.getState().end();
       router.dismissAll();
       router.push({ pathname: SUMMARY_PATH, params: { id: saved.id } });
