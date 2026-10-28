@@ -1,4 +1,12 @@
-import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 import type {
   ExerciseType,
@@ -6,6 +14,8 @@ import type {
   Routine,
   RoutineFolder,
   SetType,
+  SyncEntity,
+  SyncOp,
   WorkoutVisibility,
 } from '@/api/types';
 import type { ActiveWorkout } from '@/workout/types';
@@ -98,6 +108,8 @@ export const workouts = sqliteTable(
     deletedAt: integer('deleted_at'),
     /** Null until the server has it (Phase 4 sync). */
     syncedAt: integer('synced_at'),
+    /** The server's version; 0 until the server has it. Sent as base_version with edits. */
+    version: integer('version').notNull().default(0),
   },
   (t) => [index('workouts_started_at_idx').on(t.startedAt)],
 );
@@ -176,4 +188,25 @@ export const personalRecords = sqliteTable(
     index('personal_records_exercise_id_idx').on(t.exerciseId, t.recordType),
     index('personal_records_workout_id_idx').on(t.workoutId),
   ],
+);
+
+// --- sync outbox ---------------------------------------------------------------------------
+// Changes made on the device and not yet confirmed by the server (src/sync/outbox.ts). One
+// row per synced row: a second edit replaces the queued state in place and keeps its turn.
+
+export const outbox = sqliteTable(
+  'outbox',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    entity: text('entity').$type<SyncEntity>().notNull(),
+    entityId: text('entity_id').notNull(),
+    op: text('op').$type<SyncOp>().notNull(),
+    data: text('data', { mode: 'json' }).$type<Record<string, unknown>>(),
+    baseVersion: integer('base_version'),
+    updatedAt: integer('updated_at').notNull(),
+    revision: integer('revision').notNull(),
+    attempts: integer('attempts').notNull(),
+    nextTryAt: integer('next_try_at').notNull(),
+  },
+  (t) => [uniqueIndex('outbox_entity_row_idx').on(t.entity, t.entityId)],
 );

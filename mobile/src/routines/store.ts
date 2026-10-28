@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
+import { outbox } from '@/sync/queue';
 
 import type { RoutineRepo, LocalRoutines } from './repo';
 import { sqliteRoutineRepo } from './sqliteRepo';
@@ -12,7 +13,7 @@ let inflight: Promise<void> | null = null;
 
 /** Pull the server's routines; concurrent callers share one request. */
 export function refreshRoutines(): Promise<void> {
-  inflight ??= syncRoutines(routineRepo).finally(() => {
+  inflight ??= syncRoutines(routineRepo, undefined, () => outbox.pendingKeys()).finally(() => {
     inflight = null;
   });
   return inflight;

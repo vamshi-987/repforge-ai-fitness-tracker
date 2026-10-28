@@ -43,7 +43,10 @@ class Workout(SyncableMixin, Base):
     so a retried save never duplicates it. Totals and muscle sets are computed on save."""
 
     __tablename__ = "workouts"
-    __table_args__ = (Index("ix_workouts_user_id_started_at", "user_id", text("started_at DESC")),)
+    __table_args__ = (
+        Index("ix_workouts_user_id_started_at", "user_id", text("started_at DESC")),
+        Index("ix_workouts_user_id_change_seq", "user_id", "change_seq"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))

@@ -25,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.errors import AppError, ConflictError, NotFoundError
+from app.db.change_lock import lock_changes
 from app.db.models import (
     Exercise,
     Muscle,
@@ -176,7 +177,7 @@ async def _own_routine(
 # --- loading ----------------------------------------------------------------------------
 
 
-def _with_tree() -> tuple[Any, ...]:
+def with_tree() -> tuple[Any, ...]:
     exercises = selectinload(Workout.exercises)
     return (
         exercises.selectinload(WorkoutExercise.sets),
@@ -190,7 +191,7 @@ async def _find(
     query = (
         select(Workout)
         .where(Workout.id == workout_id)
-        .options(*_with_tree())
+        .options(*with_tree())
         # Reload the tree: after a write, the session still holds the previous children.
         .execution_options(populate_existing=True)
     )
@@ -302,7 +303,7 @@ async def list_workouts(
     query = (
         select(Workout)
         .where(Workout.user_id == user.id, Workout.deleted_at.is_(None))
-        .options(*_with_tree())
+        .options(*with_tree())
         .order_by(Workout.started_at.desc(), Workout.id.desc())
         .limit(limit + 1)
         .execution_options(populate_existing=True)
@@ -481,6 +482,8 @@ async def put_workout(
 async def _put(
     session: AsyncSession, user: User, workout_id: uuid.UUID, body: WorkoutPut, now: datetime
 ) -> bool:
+    # Before the row lock below; see app/db/change_lock.py.
+    await lock_changes(session, user.id)
     if body.ended_at > now + CLOCK_SKEW:
         raise invalid_at(["body", "ended_at"], "ended_at is in the future")
     groups = _supersets(body.exercises)

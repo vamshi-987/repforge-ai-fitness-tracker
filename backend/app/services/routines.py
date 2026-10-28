@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 
 from app.config import Settings
 from app.core.errors import AppError, ConflictError, NotFoundError
+from app.db.change_lock import lock_changes
 from app.db.models import Exercise, Routine, RoutineExercise, RoutineFolder, RoutineSet, User
 from app.schemas.routines import (
     FolderCreate,
@@ -33,10 +34,18 @@ from app.schemas.routines import (
     RoutineSetOut,
     RoutineUpdate,
 )
+from app.schemas.sync import FolderSync, RoutineSync
 from app.services.exercises import copy_name
 from app.services.profile import field_error, invalid_at, round_half_up
 
 # --- pure helpers -----------------------------------------------------------------------
+
+
+class _Keep:
+    """Marks a field to leave unchanged where None is a real value (no folder)."""
+
+
+KEEP = _Keep()
 
 
 class SupersetError(ValueError):
@@ -294,7 +303,7 @@ def _routine_not_found() -> NotFoundError:
     return NotFoundError("Routine not found")
 
 
-def _with_tree() -> tuple[Any, ...]:
+def with_tree() -> tuple[Any, ...]:
     exercises = selectinload(Routine.exercises)
     return (
         exercises.selectinload(RoutineExercise.sets),
@@ -312,7 +321,7 @@ async def _load(
     query = (
         select(Routine)
         .where(Routine.id == routine_id)
-        .options(*_with_tree())
+        .options(*with_tree())
         # Reload the tree: after a write, the session still holds the previous children.
         .execution_options(populate_existing=True)
     )
@@ -328,7 +337,7 @@ async def list_routines(session: AsyncSession, user: User, limit: int | None) ->
     rows = await session.scalars(
         select(Routine)
         .where(*_active_routines(user.id))
-        .options(*_with_tree())
+        .options(*with_tree())
         .order_by(Routine.position, Routine.created_at, Routine.id)
         .execution_options(populate_existing=True)
     )
@@ -347,6 +356,8 @@ async def _ensure_routine_id_free(session: AsyncSession, routine_id: uuid.UUID |
 async def create_routine(
     session: AsyncSession, user: User, body: RoutineCreate, limit: int | None
 ) -> RoutineOut:
+    # Before any row lock (the limit check locks the user row); see app/db/change_lock.py.
+    await lock_changes(session, user.id)
     groups = _supersets(body.exercises)
     await _check_folder(session, user, body.folder_id)
     await _check_exercises(session, user, body.exercises, set())
@@ -366,39 +377,65 @@ async def create_routine(
     return await get_routine(session, user, routine.id)
 
 
-async def update_routine(
-    session: AsyncSession, user: User, routine_id: uuid.UUID, patch: RoutineUpdate
-) -> RoutineOut:
-    # Locked, so two edits replacing the exercise list can't interleave.
-    routine = await _load(session, user, routine_id, for_update=True)
-    fields = patch.model_fields_set
+async def _change_routine(
+    session: AsyncSession,
+    user: User,
+    routine: Routine,
+    *,
+    name: str | None,
+    notes: str | None,
+    folder_id: uuid.UUID | _Keep | None,
+    exercises: Sequence[RoutineExerciseIn] | None,
+    position: int | None,
+) -> bool:
+    """Apply the given fields (None or KEEP = unchanged). Without an explicit position, a
+    routine moved to another folder goes last in it. Returns whether anything changed."""
     changed = False
-
-    if patch.name is not None and patch.name != routine.name:
-        routine.name = patch.name
+    if name is not None and name != routine.name:
+        routine.name = name
         changed = True
-    if patch.notes is not None and patch.notes != routine.notes:
-        routine.notes = patch.notes
+    if notes is not None and notes != routine.notes:
+        routine.notes = notes
         changed = True
-    if "folder_id" in fields and patch.folder_id != routine.folder_id:
-        await _check_folder(session, user, patch.folder_id)
-        # Before assigning: autoflush would otherwise count this routine in its new folder.
-        routine.position = await _next_routine_position(session, user.id, patch.folder_id)
-        routine.folder_id = patch.folder_id
+    if not isinstance(folder_id, _Keep) and folder_id != routine.folder_id:
+        await _check_folder(session, user, folder_id)
+        if position is None:
+            # Before assigning: autoflush would otherwise count this routine in its new folder.
+            position = await _next_routine_position(session, user.id, folder_id)
+        routine.folder_id = folder_id
         changed = True
-    if patch.exercises is not None:
-        groups = _supersets(patch.exercises)
-        await _check_exercises(
-            session, user, patch.exercises, {e.exercise_id for e in routine.exercises}
-        )
-        replacement = build_exercises(patch.exercises, groups)
+    if position is not None and position != routine.position:
+        routine.position = position
+        changed = True
+    if exercises is not None:
+        groups = _supersets(exercises)
+        await _check_exercises(session, user, exercises, {e.exercise_id for e in routine.exercises})
+        replacement = build_exercises(exercises, groups)
         if tree_key(replacement) != tree_key(routine.exercises):
             routine.exercises.clear()
             # Delete the old rows first: the new ones reuse their (routine, position) slots.
             await session.flush()
             routine.exercises.extend(replacement)
             changed = True
+    return changed
 
+
+async def update_routine(
+    session: AsyncSession, user: User, routine_id: uuid.UUID, patch: RoutineUpdate
+) -> RoutineOut:
+    await lock_changes(session, user.id)
+    # Locked, so two edits replacing the exercise list can't interleave.
+    routine = await _load(session, user, routine_id, for_update=True)
+    changed = await _change_routine(
+        session,
+        user,
+        routine,
+        name=patch.name,
+        notes=patch.notes,
+        folder_id=patch.folder_id if "folder_id" in patch.model_fields_set else KEEP,
+        exercises=patch.exercises,
+        position=None,
+    )
     if not changed:
         return routine_out(routine)
     routine.version += 1
@@ -425,6 +462,7 @@ async def duplicate_routine(
     body: RoutineDuplicate,
     limit: int | None,
 ) -> RoutineOut:
+    await lock_changes(session, user.id)
     source = await _load(session, user, routine_id)
     await _ensure_routine_id_free(session, body.id)
     await _enforce_limit(session, user, limit)
@@ -447,6 +485,7 @@ async def reorder_routines(
 ) -> RoutineList:
     """Move the listed routines into `folder_id` in that order. Routines already in that
     folder but not listed keep their relative order after the listed ones."""
+    await lock_changes(session, user.id)
     await _check_folder(session, user, body.folder_id)
     rows = list(
         await session.scalars(select(Routine).where(*_active_routines(user.id)).with_for_update())
@@ -567,3 +606,82 @@ async def reorder_folders(
     if changed:
         await session.commit()
     return [FolderOut.model_validate(f) for f in ordered]
+
+
+# --- sync (POST /sync/push) -------------------------------------------------------------
+# The app sends a routine's or folder's full state, with its position. The caller has
+# already checked that an existing row is the user's own and not deleted.
+
+
+async def sync_folder(
+    session: AsyncSession, user: User, folder_id: uuid.UUID, body: FolderSync
+) -> FolderOut:
+    folder = await session.get(RoutineFolder, folder_id)
+    if folder is None:
+        folder = RoutineFolder(
+            id=folder_id, user_id=user.id, name=body.name, position=body.position
+        )
+        session.add(folder)
+        await _commit_new(session, "folder_exists", "A folder with this id already exists")
+    elif (folder.name, folder.position) != (body.name, body.position):
+        folder.name = body.name
+        folder.position = body.position
+        folder.version += 1
+        await session.commit()
+    return FolderOut.model_validate(folder)
+
+
+async def _usable_folder(
+    session: AsyncSession, user: User, folder_id: uuid.UUID | None
+) -> uuid.UUID | None:
+    """A folder deleted on another device mustn't cost the routine: it goes to no folder."""
+    if folder_id is None:
+        return None
+    folder = await session.get(RoutineFolder, folder_id)
+    usable = folder is not None and folder.user_id == user.id and folder.deleted_at is None
+    return folder_id if usable else None
+
+
+async def sync_routine(
+    session: AsyncSession,
+    user: User,
+    routine_id: uuid.UUID,
+    body: RoutineSync,
+    limit: int | None,
+) -> RoutineOut:
+    await lock_changes(session, user.id)
+    folder_id = await _usable_folder(session, user, body.folder_id)
+    if await session.get(Routine, routine_id) is None:
+        groups = _supersets(body.exercises)
+        await _check_exercises(session, user, body.exercises, set())
+        await _enforce_limit(session, user, limit)
+        session.add(
+            Routine(
+                id=routine_id,
+                user_id=user.id,
+                folder_id=folder_id,
+                name=body.name,
+                notes=body.notes,
+                position=body.position,
+                exercises=build_exercises(body.exercises, groups),
+            )
+        )
+        await _commit_new(session, "routine_exists", "A routine with this id already exists")
+        return await get_routine(session, user, routine_id)
+
+    routine = await _load(session, user, routine_id, for_update=True)
+    changed = await _change_routine(
+        session,
+        user,
+        routine,
+        name=body.name,
+        notes=body.notes,
+        folder_id=folder_id,
+        exercises=body.exercises,
+        position=body.position,
+    )
+    if not changed:
+        return routine_out(routine)
+    routine.version += 1
+    await session.commit()
+    return await get_routine(session, user, routine.id)

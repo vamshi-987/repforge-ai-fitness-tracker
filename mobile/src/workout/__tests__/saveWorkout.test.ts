@@ -1,3 +1,4 @@
+import type { OutboxItem, OutboxRepo } from '@/sync/outbox';
 import { makeSet, makeWorkout, makeWorkoutExercise } from '@/test/workouts';
 
 import { toSavedWorkout } from '../finish';
@@ -31,7 +32,31 @@ function benchWorkout(id: string, weightKg: number, reps: number, startedAt: num
   });
 }
 
+const outbox = jest.requireMock<{ sqliteOutbox: OutboxRepo & { items: OutboxItem[] } }>(
+  '@/sync/sqliteOutbox',
+).sqliteOutbox;
+
+beforeEach(() => outbox.clear());
+
 describe('saveFinishedWorkout', () => {
+  it('queues the workout for the server', async () => {
+    const repo = createMemoryHistoryRepo();
+    const workout = benchWorkout('w1', 100, 5, 0);
+
+    await saveFinishedWorkout(workout, LIBRARY, repo);
+    await saveFinishedWorkout(workout, LIBRARY, repo);
+
+    expect(outbox.items).toEqual([
+      expect.objectContaining({
+        entity: 'workout',
+        entityId: 'w1',
+        op: 'upsert',
+        baseVersion: null,
+        data: expect.objectContaining({ title: 'Push', ended_at: '1970-01-01T01:00:00.000Z' }),
+      }),
+    ]);
+  });
+
   it('sets baselines first, then celebrates beating them', async () => {
     const repo = createMemoryHistoryRepo();
 

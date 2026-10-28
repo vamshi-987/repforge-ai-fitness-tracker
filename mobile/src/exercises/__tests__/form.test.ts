@@ -120,7 +120,6 @@ describe('exercise form', () => {
       secondaryMuscles: 'cannot include the primary muscle',
     });
     expect(serverFieldErrors(new Error('x'))).toEqual({});
-    expect(friendlyError(new ApiError(0, 'network_error', 'down'))).toMatch(/offline/);
     expect(friendlyError(new ApiError(409, 'exercise_exists', 'Already exists'))).toBe(
       'Already exists',
     );

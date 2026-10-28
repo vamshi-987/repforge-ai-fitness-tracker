@@ -8,6 +8,7 @@ import { destination } from '@/auth/destination';
 import { DatabaseProvider } from '@/db/DatabaseProvider';
 import { forgetUserExercises } from '@/exercises/library';
 import { forgetRoutines } from '@/routines/store';
+import { forgetSyncState } from '@/sync/useSync';
 import { installNotificationHandler } from '@/notifications/notifier';
 import { forgetActiveWorkout } from '@/stores/activeWorkout';
 import { useAuth } from '@/stores/auth';
@@ -36,6 +37,7 @@ export default function RootLayout() {
           forgetUserExercises().catch(() => undefined);
           forgetRoutines().catch(() => undefined);
           forgetActiveWorkout().catch(() => undefined);
+          forgetSyncState().catch(() => undefined);
           useRestTimer.getState().skip();
         }
       }),

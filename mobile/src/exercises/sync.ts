@@ -1,6 +1,7 @@
 import type { ApiResponse } from '@/api/client';
 import * as exercisesApi from '@/api/exercises';
 import type { Equipment, ExercisePage, Muscle } from '@/api/types';
+import { outboxKey } from '@/sync/outbox';
 
 import type { LibraryRepo } from './repo';
 
@@ -38,6 +39,7 @@ async function syncList<T>(
 export async function syncLibrary(
   repo: LibraryRepo,
   api: LibraryApi = exercisesApi,
+  pending: () => Promise<Set<string>> = async () => new Set(),
 ): Promise<boolean> {
   const musclesChanged = await syncList(repo, ETAG_KEYS.muscles, api.listMuscles, (rows) =>
     repo.replaceMuscles(rows),
@@ -56,7 +58,13 @@ export async function syncLibrary(
     items.push(...(page.data?.items ?? []));
     cursor = page.data?.next_cursor ?? null;
   }
-  await repo.replaceExercises(items);
+  // Custom exercises with changes still queued for the server keep their local state.
+  const [queued, local] = await Promise.all([pending(), repo.load()]);
+  const isQueued = (id: string) => queued.has(outboxKey('exercise', id));
+  await repo.replaceExercises([
+    ...items.filter((e) => !isQueued(e.id)),
+    ...local.exercises.filter((e) => e.is_custom && isQueued(e.id)),
+  ]);
   await repo.setMeta(ETAG_KEYS.exercises, first.etag);
   return true;
 }

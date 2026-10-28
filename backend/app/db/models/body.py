@@ -19,7 +19,10 @@ class BodyWeight(SyncableMixin, Base):
     """One weigh-in. Created by onboarding in Phase 1; full CRUD and trends arrive in Phase 5."""
 
     __tablename__ = "body_weights"
-    __table_args__ = (Index("ix_body_weights_user_id_measured_at", "user_id", "measured_at"),)
+    __table_args__ = (
+        Index("ix_body_weights_user_id_measured_at", "user_id", "measured_at"),
+        Index("ix_body_weights_user_id_change_seq", "user_id", "change_seq"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))

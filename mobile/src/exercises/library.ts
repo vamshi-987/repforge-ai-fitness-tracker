@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
+import { outbox } from '@/sync/queue';
 
 import type { LibraryRepo, LocalLibrary } from './repo';
 import { sqliteLibraryRepo } from './sqliteRepo';
@@ -12,7 +13,7 @@ let inflight: Promise<boolean> | null = null;
 
 /** Sync with the server; concurrent callers share one run. Resolves true if rows changed. */
 export function refreshLibrary(): Promise<boolean> {
-  inflight ??= syncLibrary(libraryRepo).finally(() => {
+  inflight ??= syncLibrary(libraryRepo, undefined, () => outbox.pendingKeys()).finally(() => {
     inflight = null;
   });
   return inflight;

@@ -41,6 +41,18 @@ jest.mock('expo-crypto', () => ({
     (globalThis as unknown as { crypto: { randomUUID(): string } }).crypto.randomUUID(),
 }));
 
+// The sync outbox and cursor live in SQLite, which Jest can't load: every test gets in-memory
+// ones (inspect them with jest.requireMock('@/sync/sqliteOutbox')).
+jest.mock('@/sync/sqliteOutbox', () => {
+  const { createMemoryCursor, createMemoryOutbox } =
+    jest.requireActual<typeof import('@/sync/outbox')>('@/sync/outbox');
+  return { sqliteOutbox: createMemoryOutbox(), sqliteCursor: createMemoryCursor() };
+});
+
+jest.mock('@react-native-community/netinfo', () =>
+  jest.requireActual('@react-native-community/netinfo/jest/netinfo-mock.js'),
+);
+
 // React Native loads most components lazily, on first property access. On a cold Jest cache
 // (always the case in CI) the first render in a screen test would transform them inside the
 // test's timeout. Loading them here moves that one-off cost to setup, which has no timeout.

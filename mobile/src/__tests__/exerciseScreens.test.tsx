@@ -3,13 +3,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import type { ReactElement } from 'react';
 import { Alert } from 'react-native';
 
-import type { Exercise } from '@/api/types';
 import { session } from '@/auth/session';
 import { resetLibrarySyncForTests } from '@/exercises/library';
 import type { LibraryRepo } from '@/exercises/repo';
 import { resetAuthStoreForTests, useAuth } from '@/stores/auth';
 import { BENCH, EQUIPMENT, EXERCISES, MUSCLES, makeExercise } from '@/test/library';
-import { fetchCalls, jsonResponse, errorResponse, makeMe, tokenPair } from '@/test/helpers';
+import type { OutboxItem, OutboxRepo } from '@/sync/outbox';
+import { jsonResponse, makeMe, tokenPair } from '@/test/helpers';
 
 import ExerciseDetailScreen from '../../app/exercise/[id]';
 import ExerciseFormScreen from '../../app/exercise/form';
@@ -34,6 +34,10 @@ const expoRouter = jest.requireMock<{
   useLocalSearchParams: jest.Mock;
   router: { push: jest.Mock; replace: jest.Mock; back: jest.Mock };
 }>('expo-router');
+
+const outbox = jest.requireMock<{ sqliteOutbox: OutboxRepo & { items: OutboxItem[] } }>(
+  '@/sync/sqliteOutbox',
+).sqliteOutbox;
 
 const MINE = makeExercise({ id: 'mine-1', name: 'My Landmine Press', is_custom: true });
 
@@ -62,6 +66,7 @@ beforeEach(async () => {
   for (const key of ['etag:muscles', 'etag:equipment', 'etag:exercises'])
     await repo.setMeta(key, null);
   expoRouter.useLocalSearchParams.mockReturnValue({});
+  await outbox.clear();
 });
 
 describe('Exercise library', () => {
@@ -142,47 +147,42 @@ describe('Exercise detail', () => {
     expect(screen.getByText(/appear here once you log workouts/)).toBeOnTheScreen();
   });
 
-  it('duplicates into a custom exercise and opens it for editing', async () => {
-    const copy: Exercise = {
-      ...BENCH,
-      id: 'copy-1',
-      name: 'Bench Press (Barbell) (Copy)',
-      is_custom: true,
-    };
-    const fetchMock = jest.fn().mockResolvedValue(jsonResponse(201, copy));
-    globalThis.fetch = fetchMock;
+  it('duplicates into a custom exercise and opens it for editing, offline', async () => {
+    offline();
     expoRouter.useLocalSearchParams.mockReturnValue({ id: BENCH.id });
     await show(<ExerciseDetailScreen />);
 
     await fireEvent.press(await screen.findByLabelText('Duplicate as custom'));
 
-    await waitFor(() =>
-      expect(expoRouter.router.replace).toHaveBeenCalledWith({
-        pathname: '/exercise/form',
-        params: { id: 'copy-1' },
-      }),
+    await waitFor(() => expect(expoRouter.router.replace).toHaveBeenCalled());
+    const copy = (await repo.load()).exercises.find(
+      (e) => e.name === 'Bench Press (Barbell) (Copy)',
     );
-    expect(fetchCalls(fetchMock).map((c) => [c.init.method, c.url])).toContainEqual([
-      'POST',
-      `http://api.test/v1/exercises/${BENCH.id}/duplicate`,
+    expect(copy).toMatchObject({ is_custom: true, type: BENCH.type, version: 0 });
+    expect(expoRouter.router.replace).toHaveBeenCalledWith({
+      pathname: '/exercise/form',
+      params: { id: copy?.id },
+    });
+    expect(outbox.items).toEqual([
+      expect.objectContaining({ entity: 'exercise', entityId: copy?.id, op: 'upsert' }),
     ]);
-    expect((await repo.load()).exercises.some((e) => e.id === 'copy-1')).toBe(true);
   });
 
-  it('deletes a custom exercise after confirming', async () => {
+  it('deletes a custom exercise after confirming, offline', async () => {
+    offline();
     jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
       buttons?.find((b) => b.style === 'destructive')?.onPress?.();
     });
-    const fetchMock = jest.fn().mockResolvedValue(jsonResponse(204, null));
-    globalThis.fetch = fetchMock;
     expoRouter.useLocalSearchParams.mockReturnValue({ id: MINE.id });
     await show(<ExerciseDetailScreen />);
 
     await fireEvent.press(await screen.findByLabelText('Delete'));
 
     await waitFor(() => expect(expoRouter.router.back).toHaveBeenCalled());
-    expect(fetchCalls(fetchMock)[0]?.init.method).toBe('DELETE');
     expect((await repo.load()).exercises.some((e) => e.id === MINE.id)).toBe(false);
+    expect(outbox.items).toEqual([
+      expect.objectContaining({ entity: 'exercise', entityId: MINE.id, op: 'delete' }),
+    ]);
   });
 
   it('explains when an exercise is not on the device', async () => {
@@ -206,10 +206,8 @@ describe('Custom exercise form', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('creates an exercise and opens it', async () => {
-    const created: Exercise = { ...MINE, id: 'new-1', name: 'Cable Thing', equipment: 'cable' };
-    const fetchMock = jest.fn().mockResolvedValue(jsonResponse(201, created));
-    globalThis.fetch = fetchMock;
+  it('creates an exercise offline, opens it and queues it for the server', async () => {
+    const fetchMock = offline();
     await show(<ExerciseFormScreen />);
 
     await fireEvent.changeText(await screen.findByLabelText('Name'), ' Cable  Thing ');
@@ -219,28 +217,36 @@ describe('Custom exercise form', () => {
     await fireEvent.press(screen.getByLabelText('Secondary muscle: Triceps'));
     await fireEvent.press(screen.getByLabelText('Create exercise'));
 
-    await waitFor(() =>
-      expect(expoRouter.router.replace).toHaveBeenCalledWith({
-        pathname: '/exercise/[id]',
-        params: { id: 'new-1' },
-      }),
-    );
-    expect(JSON.parse(fetchCalls(fetchMock)[0]?.init.body as string)).toEqual({
-      name: 'Cable Thing',
-      type: 'weight_reps',
-      equipment: 'cable',
-      primary_muscle: 'chest',
-      secondary_muscles: ['triceps'],
-      instructions: [],
+    await waitFor(() => expect(expoRouter.router.replace).toHaveBeenCalled());
+    const created = (await repo.load()).exercises.find((e) => e.name === 'Cable Thing');
+    expect(created).toMatchObject({ is_custom: true, equipment: 'cable', version: 0 });
+    expect(expoRouter.router.replace).toHaveBeenCalledWith({
+      pathname: '/exercise/[id]',
+      params: { id: created?.id },
     });
-    expect((await repo.load()).exercises.some((e) => e.id === 'new-1')).toBe(true);
+    expect(outbox.items).toEqual([
+      expect.objectContaining({
+        entity: 'exercise',
+        entityId: created?.id,
+        op: 'upsert',
+        baseVersion: null,
+        data: {
+          name: 'Cable Thing',
+          type: 'weight_reps',
+          equipment: 'cable',
+          primary_muscle: 'chest',
+          secondary_muscles: ['triceps'],
+          instructions: [],
+        },
+      }),
+    ]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('edits a custom exercise without offering a type change', async () => {
-    const fetchMock = jest.fn(async () =>
-      jsonResponse(200, { ...MINE, name: 'Renamed', version: 2 }),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    offline();
+    const synced = { ...MINE, version: 3 };
+    await repo.putExercise(synced);
     expoRouter.useLocalSearchParams.mockReturnValue({ id: MINE.id });
     await show(<ExerciseFormScreen />);
 
@@ -250,41 +256,15 @@ describe('Custom exercise form', () => {
     await fireEvent.press(screen.getByLabelText('Save changes'));
 
     await waitFor(() => expect(expoRouter.router.back).toHaveBeenCalled());
-    const [call] = fetchCalls(fetchMock as unknown as jest.Mock);
-    expect(call?.init.method).toBe('PATCH');
-    expect(JSON.parse(call?.init.body as string)).toEqual({ name: 'Renamed' });
-  });
-
-  it('shows server field errors next to the field', async () => {
-    globalThis.fetch = jest
-      .fn()
-      .mockResolvedValue(
-        errorResponse(422, 'validation_error', [
-          { loc: ['body', 'equipment'], msg: "unknown equipment 'cable'" },
-        ]),
-      );
-    await show(<ExerciseFormScreen />);
-
-    await fireEvent.changeText(await screen.findByLabelText('Name'), 'Thing');
-    await fireEvent.press(screen.getByLabelText('Duration'));
-    await fireEvent.press(screen.getByLabelText('Equipment: Cable'));
-    await fireEvent.press(screen.getByLabelText('Primary muscle: Quads'));
-    await fireEvent.press(screen.getByLabelText('Create exercise'));
-
-    expect(await screen.findByText("unknown equipment 'cable'")).toBeOnTheScreen();
-  });
-
-  it('says so when offline', async () => {
-    offline();
-    await show(<ExerciseFormScreen />);
-
-    await fireEvent.changeText(await screen.findByLabelText('Name'), 'Thing');
-    await fireEvent.press(screen.getByLabelText('Duration'));
-    await fireEvent.press(screen.getByLabelText('Equipment: Cable'));
-    await fireEvent.press(screen.getByLabelText('Primary muscle: Quads'));
-    await fireEvent.press(screen.getByLabelText('Create exercise'));
-
-    expect(await screen.findByText(/You're offline/)).toBeOnTheScreen();
+    expect((await repo.load()).exercises.find((e) => e.id === MINE.id)?.name).toBe('Renamed');
+    // The whole exercise is queued, based on the version the server last confirmed.
+    expect(outbox.items).toEqual([
+      expect.objectContaining({
+        entityId: MINE.id,
+        baseVersion: 3,
+        data: expect.objectContaining({ name: 'Renamed', type: MINE.type }),
+      }),
+    ]);
   });
 
   it('refuses to edit a library exercise', async () => {

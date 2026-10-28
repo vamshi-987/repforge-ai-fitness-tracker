@@ -21,7 +21,10 @@ class SetType(StrEnum):
 
 class RoutineFolder(SyncableMixin, Base):
     __tablename__ = "routine_folders"
-    __table_args__ = (Index("ix_routine_folders_user_id", "user_id"),)
+    __table_args__ = (
+        Index("ix_routine_folders_user_id", "user_id"),
+        Index("ix_routine_folders_user_id_change_seq", "user_id", "change_seq"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
@@ -34,7 +37,10 @@ class Routine(SyncableMixin, Base):
     replaced as a whole, and `version` goes up once per change."""
 
     __tablename__ = "routines"
-    __table_args__ = (Index("ix_routines_user_id", "user_id"),)
+    __table_args__ = (
+        Index("ix_routines_user_id", "user_id"),
+        Index("ix_routines_user_id_change_seq", "user_id", "change_seq"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
