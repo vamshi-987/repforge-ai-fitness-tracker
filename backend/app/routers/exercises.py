@@ -14,6 +14,9 @@ from app.schemas.exercises import (
     ExerciseUpdate,
     MuscleOut,
 )
+from app.schemas.stats import ExerciseHistoryPage, ExerciseStatsOut, StatsRange
+from app.schemas.workouts import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.services import exercise_stats
 from app.services import exercises as exercise_service
 from app.services.exercise_search import MAX_QUERY_LENGTH
 
@@ -110,6 +113,31 @@ async def duplicate_exercise(
 async def _library_list_etag(session: DbSession, redis: RedisClient, name: str) -> str:
     version = await exercise_service.library_version(session, redis)
     return exercise_service.make_etag(version, name)
+
+
+@router.get("/exercises/{exercise_id}/history", response_model=ExerciseHistoryPage)
+async def exercise_history(
+    exercise_id: uuid.UUID,
+    user: CurrentUser,
+    session: DbSession,
+    cursor: str | None = None,
+    limit: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+) -> ExerciseHistoryPage:
+    return await exercise_stats.exercise_history(
+        session, user, exercise_id, cursor=cursor, limit=limit
+    )
+
+
+@router.get("/exercises/{exercise_id}/stats", response_model=ExerciseStatsOut)
+async def exercise_stats_view(
+    exercise_id: uuid.UUID,
+    user: CurrentUser,
+    session: DbSession,
+    stats_range: Annotated[StatsRange, Query(alias="range")] = StatsRange.QUARTER,
+) -> ExerciseStatsOut:
+    return await exercise_stats.exercise_stats(
+        session, user, exercise_id, stats_range, datetime.now(UTC)
+    )
 
 
 @router.get("/muscles", response_model=list[MuscleOut])
