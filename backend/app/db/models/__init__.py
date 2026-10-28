@@ -1,5 +1,7 @@
 """Import every model module here so Alembic autogenerate sees the full metadata."""
 
+# Registers the sync lock hook on every session (see app/db/change_lock.py).
+import app.db.change_lock  # noqa: F401
 from app.db.base import Base
 from app.db.models.auth import RefreshToken
 from app.db.models.body import BodyWeight, WeightSource

@@ -526,3 +526,74 @@ A workout is logged on the phone and saved **as a whole** under the UUID the pho
 Soft delete (other devices pull the removal). Records of its exercises are recomputed, so a later workout can become a record again. Allowed at any age.
 
 **204** · **404** (unknown, another user's, or already deleted)
+
+---
+
+## Sync
+
+The app works offline: it writes to its own database first and queues each change in an **outbox**. When it can, it pushes the outbox, then pulls everything that changed since its last pull. Both endpoints need `Authorization: Bearer <access_token>`.
+
+Synced entities, in the order the app sends them: `exercise` (custom exercises), `routine_folder`, `routine`, `workout`. Every row is identified by a client-generated UUID.
+
+### `POST /v1/sync/push`
+```json
+{
+  "changes": [
+    {"entity": "exercise", "id": "…", "op": "upsert", "base_version": null,
+     "updated_at": "2026-10-27T17:58:00Z",
+     "data": {"name": "Landmine Press", "type": "weight_reps", "equipment": "barbell",
+              "primary_muscle": "chest", "secondary_muscles": [], "instructions": []}},
+    {"entity": "routine_folder", "id": "…", "op": "upsert", "base_version": 2,
+     "updated_at": "2026-10-27T17:59:00Z", "data": {"name": "Strength", "position": 0}},
+    {"entity": "routine", "id": "…", "op": "upsert", "base_version": 1, "updated_at": "…",
+     "data": {"name": "Push Day", "notes": "", "folder_id": "…", "position": 0, "exercises": [ /* as in POST /routines */ ]}},
+    {"entity": "workout", "id": "…", "op": "upsert", "base_version": null, "updated_at": "…",
+     "data": { /* the PUT /workouts/{id} body */ }},
+    {"entity": "routine", "id": "…", "op": "delete"}
+  ]
+}
+```
+- Up to 100 changes, applied **in order**, each on its own: one rejected change doesn't stop the others.
+- `data` is the row's **full state** (required for `upsert`, omitted for `delete`): the custom exercise body of `POST /exercises`, `{"name", "position"}` for a folder, the routine body with its `position`, or the `PUT /workouts/{id}` body. The same rules apply as on those endpoints (free routine limit, immutable exercise type, the workout 24-hour rule).
+- A routine whose `folder_id` is unknown or deleted is saved without a folder rather than refused.
+- `base_version`: the server `version` the edit started from (`null` for a row the device created). `updated_at`: when the edit was made on the device.
+- **Conflicts:** if the server's `version` is newer than `base_version`, two devices edited the row. The later edit by `updated_at` wins (last write wins); a losing edit is answered `stale`. Deletes win over edits: an upsert of a deleted row is `rejected` with `<entity>_deleted`.
+- Deleting something that doesn't exist (or is already deleted) is `applied`: deletes are idempotent too.
+
+**200**
+```json
+{
+  "results": [
+    {"entity": "exercise", "id": "…", "status": "applied", "deleted": false, "data": { /* exercise object */ }, "error": null},
+    {"entity": "routine_folder", "id": "…", "status": "stale", "deleted": false, "data": { /* the server's copy */ }, "error": null},
+    {"entity": "routine", "id": "…", "status": "rejected", "deleted": true, "data": null,
+     "error": {"code": "routine_limit_reached", "message": "…", "details": {"limit": 4}}}
+  ]
+}
+```
+- `status`: `applied`, `stale` (the edit lost a conflict), or `rejected` (with `error`, the same `{code, message, details}` as the endpoint would return; a malformed `data` is `validation_error` with `loc` starting at `"data"`).
+- `data` is the server's copy after the change (the object its own endpoint returns), or `null` with `deleted: true` when the row doesn't exist on the server, so the app can replace or drop its local copy.
+- Library exercises can't be changed or deleted: `rejected` with `library_exercise_read_only`, and `data` is the library copy. An id that belongs to another user's row: upsert `rejected` with `<entity>_exists`, delete `applied`.
+
+**422** only when the batch itself is malformed (over 100 changes, unknown entity, an upsert without `data`).
+
+### `GET /v1/sync/pull`
+`?since=<cursor>&limit=<n>` (`since` defaults to 0, `limit` 1–500, default 200).
+
+Every row of the caller's that changed after `since`, oldest change first. A first pull (`since=0`) leaves out deleted rows.
+
+**200**
+```json
+{
+  "changes": [
+    {"entity": "routine", "id": "…", "change_seq": 1041, "deleted": false, "data": { /* routine object */ }},
+    {"entity": "workout", "id": "…", "change_seq": 1043, "deleted": true, "data": null}
+  ],
+  "cursor": 1043,
+  "has_more": false
+}
+```
+- Store `cursor` and send it as `since` next time. While `has_more` is true, pull again straight away.
+- `exercise` changes are the caller's custom exercises only; the library syncs through `GET /exercises`.
+- A workout whose records changed because an earlier workout was synced or deleted comes back with a new `version`.
+- **No change is ever skipped:** every insert or update of a syncable row takes the next `change_seq` from one sequence, and a pull waits until the caller's writes in flight have committed, so a row can't become visible behind a cursor that has already moved past it.

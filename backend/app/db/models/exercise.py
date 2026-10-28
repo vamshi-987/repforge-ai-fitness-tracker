@@ -73,8 +73,10 @@ class Exercise(SyncableMixin, Base):
     """
 
     __tablename__ = "exercises"
+    __sync_owner__ = "owner_user_id"
     __table_args__ = (
         Index("ix_exercises_owner_user_id", "owner_user_id"),
+        Index("ix_exercises_owner_user_id_change_seq", "owner_user_id", "change_seq"),
         Index(
             "ix_exercises_name_trgm",
             "name",

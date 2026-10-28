@@ -218,7 +218,7 @@ async def library_version(session: AsyncSession, redis: Redis) -> str:
 # --- loading ----------------------------------------------------------------------------
 
 
-def _with_relations() -> tuple[Any, ...]:
+def with_relations() -> tuple[Any, ...]:
     return (
         joinedload(Exercise.equipment),
         joinedload(Exercise.primary_muscle),
@@ -253,7 +253,7 @@ async def _library_items(session: AsyncSession, redis: Redis, version: str) -> l
     rows = await session.scalars(
         select(Exercise)
         .where(Exercise.owner_user_id.is_(None), Exercise.is_archived.is_(False))
-        .options(*_with_relations())
+        .options(*with_relations())
     )
     items = [exercise_out(row) for row in rows]
     await _cache_set(redis, key, _items_adapter.dump_json(items).decode(), LIBRARY_CACHE_TTL_S)
@@ -291,7 +291,7 @@ async def _custom_ranked(
     rows = await session.execute(
         select(Exercise, score)
         .where(Exercise.owner_user_id == user_id, Exercise.deleted_at.is_(None), match)
-        .options(*_with_relations())
+        .options(*with_relations())
     )
     return [Ranked(exercise_out(row[0]), float(row[1])) for row in rows.unique().all()]
 
@@ -380,7 +380,7 @@ def _read_only() -> AppError:
 async def _load(session: AsyncSession, user: User, exercise_id: uuid.UUID) -> Exercise:
     """A library exercise (archived ones too: history links to them) or one of the user's own."""
     exercise = await session.scalar(
-        select(Exercise).where(Exercise.id == exercise_id).options(*_with_relations())
+        select(Exercise).where(Exercise.id == exercise_id).options(*with_relations())
     )
     if (
         exercise is None
