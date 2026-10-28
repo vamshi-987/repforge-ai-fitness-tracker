@@ -10,9 +10,86 @@ import {
 } from '@/db/schema';
 import { newId } from '@/lib/ids';
 
-import type { HistoryRepo, PreviousSet } from './history';
+import type { HistoryRepo, PreviousSet, SavedWorkout, WorkoutExtras } from './history';
 import type { PreviousBests } from './records';
+import { fromServerWorkout } from './serverWorkout';
 import type { WorkoutExercise } from './types';
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Insert a workout with its exercises, sets, muscle sets and records. */
+function insertWorkout(
+  tx: Tx,
+  workout: SavedWorkout,
+  extras: WorkoutExtras,
+  sync: { version: number; syncedAt: number | null },
+): void {
+  const now = Date.now();
+  tx.insert(workouts)
+    .values({
+      id: workout.id,
+      routineId: workout.routineId,
+      title: workout.title,
+      notes: workout.notes,
+      startedAt: workout.startedAt,
+      endedAt: workout.endedAt,
+      visibility: workout.visibility,
+      totalVolumeKg: workout.volumeKg,
+      totalSets: workout.setCount,
+      createdAt: now,
+      updatedAt: now,
+      version: sync.version,
+      syncedAt: sync.syncedAt,
+    })
+    .run();
+  workout.exercises.forEach((exercise, position) => {
+    tx.insert(workoutExercises)
+      .values({
+        id: exercise.id,
+        workoutId: workout.id,
+        exerciseId: exercise.exerciseId,
+        name: exercise.name,
+        exerciseType: exercise.type,
+        position,
+        supersetGroup: exercise.supersetGroup,
+        notes: exercise.notes,
+      })
+      .run();
+    exercise.sets.forEach((set, setPosition) => {
+      tx.insert(workoutSets)
+        .values({
+          id: set.id,
+          workoutExerciseId: exercise.id,
+          position: setPosition,
+          setType: set.type,
+          weightKg: set.weightKg,
+          reps: set.reps,
+          durationS: set.durationS,
+          distanceM: set.distanceM,
+          rpe: set.rpe,
+          completed: set.completed,
+        })
+        .run();
+    });
+  });
+  for (const [muscle, sets] of Object.entries(extras.muscleSets)) {
+    tx.insert(workoutMuscleSets).values({ workoutId: workout.id, muscle, sets }).run();
+  }
+  for (const record of extras.records) {
+    tx.insert(personalRecords)
+      .values({
+        id: newId(),
+        exerciseId: record.exerciseId,
+        recordType: record.type,
+        value: record.value,
+        workoutId: record.workoutId,
+        workoutSetId: record.setId,
+        previousValue: record.previous,
+        achievedAt: record.achievedAt,
+      })
+      .run();
+  }
+}
 
 export const sqliteHistoryRepo: HistoryRepo = {
   async previousSets(exerciseIds) {
@@ -138,70 +215,34 @@ export const sqliteHistoryRepo: HistoryRepo = {
   },
 
   async save(workout, extras) {
-    const now = Date.now();
+    db.transaction((tx) => insertWorkout(tx, workout, extras, { version: 0, syncedAt: null }));
+  },
+
+  async putServerWorkout(workout) {
+    const stored = fromServerWorkout(workout);
     db.transaction((tx) => {
-      tx.insert(workouts)
-        .values({
-          id: workout.id,
-          routineId: workout.routineId,
-          title: workout.title,
-          notes: workout.notes,
-          startedAt: workout.startedAt,
-          endedAt: workout.endedAt,
-          visibility: workout.visibility,
-          totalVolumeKg: workout.volumeKg,
-          totalSets: workout.setCount,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
-      workout.exercises.forEach((exercise, position) => {
-        tx.insert(workoutExercises)
-          .values({
-            id: exercise.id,
-            workoutId: workout.id,
-            exerciseId: exercise.exerciseId,
-            name: exercise.name,
-            exerciseType: exercise.type,
-            position,
-            supersetGroup: exercise.supersetGroup,
-            notes: exercise.notes,
-          })
-          .run();
-        exercise.sets.forEach((set, setPosition) => {
-          tx.insert(workoutSets)
-            .values({
-              id: set.id,
-              workoutExerciseId: exercise.id,
-              position: setPosition,
-              setType: set.type,
-              weightKg: set.weightKg,
-              reps: set.reps,
-              durationS: set.durationS,
-              distanceM: set.distanceM,
-              rpe: set.rpe,
-              completed: set.completed,
-            })
-            .run();
-        });
-      });
-      for (const [muscle, sets] of Object.entries(extras.muscleSets)) {
-        tx.insert(workoutMuscleSets).values({ workoutId: workout.id, muscle, sets }).run();
-      }
-      for (const record of extras.records) {
-        tx.insert(personalRecords)
-          .values({
-            id: newId(),
-            exerciseId: record.exerciseId,
-            recordType: record.type,
-            value: record.value,
-            workoutId: record.workoutId,
-            workoutSetId: record.setId,
-            previousValue: record.previous,
-            achievedAt: record.achievedAt,
-          })
-          .run();
-      }
+      // Cascades to its exercises, sets, muscle sets and records.
+      tx.delete(workouts).where(eq(workouts.id, workout.id)).run();
+      insertWorkout(tx, stored, stored, { version: workout.version, syncedAt: Date.now() });
     });
+  },
+
+  async remove(workoutId) {
+    db.delete(workouts).where(eq(workouts.id, workoutId)).run();
+  },
+
+  async unsynced() {
+    const ids = db
+      .select({ id: workouts.id })
+      .from(workouts)
+      .where(isNull(workouts.syncedAt))
+      .orderBy(asc(workouts.startedAt))
+      .all();
+    const found = await Promise.all(ids.map(({ id }) => sqliteHistoryRepo.load(id)));
+    return found.filter((w) => w !== null);
+  },
+
+  async clear() {
+    db.delete(workouts).run();
   },
 };

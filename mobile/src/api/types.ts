@@ -226,3 +226,112 @@ export type RoutineUpdate = Partial<Omit<RoutineCreate, 'id'>>;
 export type WorkoutVisibility = 'public' | 'followers' | 'private';
 
 export type RecordType = 'heaviest' | 'e1rm' | 'best_set_volume' | 'session_volume' | 'most_reps';
+
+/** A set of a finished workout, as the server stores it (docs/api.md § Workouts). */
+export interface WorkoutSetOut {
+  id: string;
+  set_type: SetType;
+  weight_kg: number | null;
+  reps: number | null;
+  duration_s: number | null;
+  distance_m: number | null;
+  rpe: number | null;
+  completed: boolean;
+}
+
+export interface WorkoutExerciseOut {
+  id: string;
+  exercise_id: string;
+  exercise_name: string;
+  exercise_type: ExerciseType;
+  superset_group: number | null;
+  notes: string;
+  sets: WorkoutSetOut[];
+}
+
+export interface RecordOut {
+  exercise_id: string;
+  record_type: RecordType;
+  value: number;
+  /** null = the first value (a baseline, not a PR). */
+  previous_value: number | null;
+  /** null for whole-session records (session volume). */
+  set_id: string | null;
+}
+
+export interface Workout {
+  id: string;
+  routine_id: string | null;
+  title: string;
+  notes: string;
+  started_at: string;
+  ended_at: string;
+  duration_s: number;
+  visibility: WorkoutVisibility;
+  total_volume_kg: number;
+  total_sets: number;
+  exercises: WorkoutExerciseOut[];
+  /** Muscle slug → sets (primary 1, secondary 0.5). */
+  muscle_sets: Record<string, number>;
+  records: RecordOut[];
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** PUT /workouts/{id} body: the whole finished workout. */
+export interface WorkoutPut {
+  title: string;
+  notes: string;
+  routine_id: string | null;
+  started_at: string;
+  ended_at: string;
+  visibility: WorkoutVisibility;
+  exercises: {
+    exercise_id: string;
+    superset_group: number | null;
+    notes: string;
+    sets: Omit<WorkoutSetOut, 'id'>[];
+  }[];
+}
+
+// --- sync (docs/api.md § Sync) ------------------------------------------------------------
+
+export type SyncEntity = 'exercise' | 'routine_folder' | 'routine' | 'workout';
+export type SyncOp = 'upsert' | 'delete';
+
+export interface SyncChange {
+  entity: SyncEntity;
+  id: string;
+  op: SyncOp;
+  /** The server version the edit started from; null for a row the device created. */
+  base_version: number | null;
+  /** When the edit was made on the device. */
+  updated_at: string;
+  data: Record<string, unknown> | null;
+}
+
+export interface SyncResult {
+  entity: SyncEntity;
+  id: string;
+  status: 'applied' | 'stale' | 'rejected';
+  /** True when the row doesn't exist on the server. */
+  deleted: boolean;
+  /** The server's copy after the change. */
+  data: unknown;
+  error: { code: string; message: string; details: unknown } | null;
+}
+
+export interface SyncPulled {
+  entity: SyncEntity;
+  id: string;
+  change_seq: number;
+  deleted: boolean;
+  data: unknown;
+}
+
+export interface SyncPull {
+  changes: SyncPulled[];
+  cursor: number;
+  has_more: boolean;
+}

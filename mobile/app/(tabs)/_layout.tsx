@@ -5,6 +5,7 @@ import { Text, type ColorValue } from 'react-native';
 
 import { MiniWorkoutBar } from '@/components/workout/MiniWorkoutBar';
 import { useLibrarySync } from '@/exercises/library';
+import { useSyncEngine } from '@/sync/useSync';
 import { useTheme } from '@/theme/useTheme';
 import { useActiveWorkoutBoot } from '@/workout/useActiveWorkoutBoot';
 import { useOngoingNotification } from '@/workout/useOngoingNotification';
@@ -20,6 +21,8 @@ export default function TabsLayout() {
   const { colors } = useTheme();
   // Keep the offline exercise library fresh (a few empty 304s when nothing changed).
   useLibrarySync();
+  // Push queued changes and pull the server's (routines, custom exercises, workouts).
+  useSyncEngine();
   useActiveWorkoutBoot();
   useResumePrompt();
   useOngoingNotification();

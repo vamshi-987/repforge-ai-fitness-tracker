@@ -1,12 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { Alert } from 'react-native';
+
 import { session } from '@/auth/session';
 import { resetAuthStoreForTests, useAuth } from '@/stores/auth';
+import type { OutboxRepo } from '@/sync/outbox';
 import { errorResponse, fetchCalls, jsonResponse, makeMe, tokenPair } from '@/test/helpers';
 
 import SettingsScreen from '../../app/settings';
 
 const ME = makeMe({ onboarding_complete: true });
+const outbox = jest.requireMock<{ sqliteOutbox: OutboxRepo }>('@/sync/sqliteOutbox').sqliteOutbox;
 
 function bodiesTo(fetchMock: jest.Mock, path: string) {
   return fetchCalls(fetchMock)
@@ -77,6 +81,26 @@ describe('Settings screen', () => {
     await fireEvent.press(screen.getByLabelText('Log out'));
 
     await waitFor(() => expect(useAuth.getState().status).toBe('signedOut'));
+  });
+
+  it('warns before logging out with changes the server has not got yet', async () => {
+    globalThis.fetch = jest.fn().mockResolvedValue(jsonResponse(204, null));
+    await outbox.enqueue(
+      { entity: 'workout', entityId: 'w', op: 'delete', data: null, baseVersion: null },
+      0,
+    );
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await render(<SettingsScreen />);
+
+    await fireEvent.press(screen.getByLabelText('Log out'));
+
+    await waitFor(() => expect(alert).toHaveBeenCalled());
+    expect(alert.mock.calls[0]?.[1]).toMatch(/1 change hasn’t reached the server/);
+    expect(useAuth.getState().status).toBe('signedIn');
+    const logOutAnyway = alert.mock.calls[0]?.[2]?.find((b) => b.style === 'destructive');
+    logOutAnyway?.onPress?.();
+    await waitFor(() => expect(useAuth.getState().status).toBe('signedOut'));
+    await outbox.clear();
   });
 
   it('shows the medical disclaimer and data attributions', async () => {

@@ -1,6 +1,7 @@
 import { ApiError, type ApiResponse } from '@/api/client';
 import type { Equipment, ExercisePage, Muscle } from '@/api/types';
-import { BENCH, EQUIPMENT, EXERCISES, MUSCLES } from '@/test/library';
+import { outboxKey } from '@/sync/outbox';
+import { BENCH, EQUIPMENT, EXERCISES, MUSCLES, makeExercise } from '@/test/library';
 
 import { createMemoryRepo } from '../repo';
 import { ETAG_KEYS, syncLibrary, type LibraryApi } from '../sync';
@@ -32,6 +33,22 @@ function fakeApi(pages: ExercisePage[] = [{ items: EXERCISES, next_cursor: null 
 }
 
 describe('syncLibrary', () => {
+  it('keeps custom exercises with queued changes as they are on the device', async () => {
+    const mine = makeExercise({ id: 'mine', name: 'Made offline', is_custom: true });
+    const edited = makeExercise({ id: 'edited', name: 'Edited here', is_custom: true });
+    const repo = createMemoryRepo({ exercises: [mine, edited] });
+    const { api } = fakeApi([
+      { items: [BENCH, { ...edited, name: 'Server name' }], next_cursor: null },
+    ]);
+    const pending = new Set([outboxKey('exercise', 'mine'), outboxKey('exercise', 'edited')]);
+
+    await syncLibrary(repo, api, async () => pending);
+
+    expect((await repo.load()).exercises.map((e) => e.name).sort()).toEqual(
+      [BENCH.name, 'Edited here', 'Made offline'].sort(),
+    );
+  });
+
   it('downloads everything once, then revalidates with ETags', async () => {
     const repo = createMemoryRepo();
     const { api, calls } = fakeApi();

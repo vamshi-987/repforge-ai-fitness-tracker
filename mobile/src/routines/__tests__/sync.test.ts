@@ -1,3 +1,4 @@
+import { outboxKey } from '@/sync/outbox';
 import { makeFolder, makeRoutine } from '@/test/routines';
 
 import { createMemoryRoutineRepo } from '../repo';
@@ -19,6 +20,29 @@ describe('syncRoutines', () => {
     expect(local.routines.map((r) => r.name)).toEqual(['New']);
     expect(local.folders.map((f) => f.name)).toEqual(['Upper']);
     expect(local.limit).toBe(4);
+  });
+
+  it('keeps rows with queued changes as they are on the device', async () => {
+    const edited = makeRoutine({ name: 'Edited here' });
+    const created = makeRoutine({ name: 'Made offline' });
+    const deletedHere = makeRoutine({ name: 'Deleted here' });
+    const repo = createMemoryRoutineRepo({ routines: [edited, created] });
+    const api: RoutinesApi = {
+      listRoutines: jest.fn().mockResolvedValue({
+        items: [{ ...edited, name: 'Server name' }, deletedHere, makeRoutine({ name: 'Other' })],
+        routine_limit: 4,
+      }),
+      listFolders: jest.fn().mockResolvedValue([]),
+    };
+    const pending = new Set([edited, created, deletedHere].map((r) => outboxKey('routine', r.id)));
+
+    await syncRoutines(repo, api, async () => pending);
+
+    expect((await repo.load()).routines.map((r) => r.name).sort()).toEqual([
+      'Edited here',
+      'Made offline',
+      'Other',
+    ]);
   });
 
   it('keeps the local copy when offline', async () => {

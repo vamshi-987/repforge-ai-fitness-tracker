@@ -146,8 +146,6 @@ export function serverFieldErrors(error: unknown): DraftErrors {
 }
 
 export function friendlyError(error: unknown): string {
-  if (error instanceof ApiError && error.code === 'network_error')
-    return "You're offline. Custom exercises can be changed once you're back online.";
   if (error instanceof ApiError && error.message) return error.message;
   return 'Something went wrong. Try again.';
 }

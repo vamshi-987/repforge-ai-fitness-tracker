@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Settings } from '@/api/types';
@@ -10,6 +10,7 @@ import { Stepper } from '@/components/ui/Stepper';
 import { formatRest, stepValue } from '@/lib/format';
 import { saveSettings, saveUnits } from '@/settings/actions';
 import { useAuth } from '@/stores/auth';
+import { outbox } from '@/sync/queue';
 import { useTheme } from '@/theme/useTheme';
 
 const REST = { min: 0, max: 900, step: 15 } as const;
@@ -68,6 +69,23 @@ export default function SettingsScreen() {
     setSaveFailed(!(await save));
   }
   const setSetting = (patch: Partial<Settings>) => void track(saveSettings(patch));
+
+  /** Logging out wipes this phone's copy, so changes the server hasn't got yet would be lost. */
+  async function logOut() {
+    const unsent = await outbox.count();
+    if (unsent === 0) {
+      await signOut();
+      return;
+    }
+    Alert.alert(
+      'Changes not synced yet',
+      `${unsent === 1 ? '1 change hasn’t' : `${unsent} changes haven’t`} reached the server. Logging out now deletes ${unsent === 1 ? 'it' : 'them'} from this phone.`,
+      [
+        { text: 'Stay logged in', style: 'cancel' },
+        { text: 'Log out anyway', style: 'destructive', onPress: () => void signOut() },
+      ],
+    );
+  }
   const changeRest = (delta: number) =>
     setSetting({
       default_rest_s: stepValue(settings.default_rest_s, delta, REST.min, REST.max, REST.step),
@@ -142,7 +160,7 @@ export default function SettingsScreen() {
 
         <Section title="Account">
           <Row label={me.display_name} hint={`@${me.username} · ${me.email}`} />
-          <Button label="Log out" variant="secondary" onPress={() => void signOut()} />
+          <Button label="Log out" variant="secondary" onPress={() => void logOut()} />
         </Section>
 
         <Section title="About">
