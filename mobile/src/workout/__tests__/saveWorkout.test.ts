@@ -3,7 +3,7 @@ import { makeSet, makeWorkout, makeWorkoutExercise } from '@/test/workouts';
 
 import { toSavedWorkout } from '../finish';
 import { createMemoryHistoryRepo } from '../history';
-import { saveFinishedWorkout } from '../saveWorkout';
+import { deleteSavedWorkout, saveFinishedWorkout, updateSavedWorkout } from '../saveWorkout';
 
 jest.mock('@/workout/sqliteHistory', () => ({ sqliteHistoryRepo: {} }));
 
@@ -95,5 +95,54 @@ describe('saveFinishedWorkout', () => {
 
     expect(again).toEqual(prs);
     expect(repo.workouts).toHaveLength(2);
+  });
+});
+
+describe('editing and deleting saved workouts', () => {
+  it('recomputes the edited workout against the other workouts only', async () => {
+    const repo = createMemoryHistoryRepo();
+    await saveFinishedWorkout(benchWorkout('w1', 100, 5, 0), LIBRARY, repo);
+    const second = benchWorkout('w2', 105, 5, 86_400_000);
+    await saveFinishedWorkout(second, LIBRARY, repo);
+    repo.sync.set('w2', { version: 3, syncedAt: 1 });
+    await outbox.clear();
+
+    // The weight was a typo: 95, not 105. No longer a record over w1's 100.
+    const edited = benchWorkout('w2', 95, 5, 86_400_000);
+    await updateSavedWorkout(edited, LIBRARY, repo);
+
+    const stored = await repo.load('w2');
+    expect(stored?.records.filter((r) => r.type === 'heaviest')).toEqual([]);
+    expect(stored?.muscleSets).toEqual({ chest: 2, triceps: 1 });
+    expect(repo.sync.get('w2')).toEqual({ version: 3, syncedAt: 1 });
+    expect(outbox.items).toEqual([
+      expect.objectContaining({ entityId: 'w2', op: 'upsert', baseVersion: 3 }),
+    ]);
+  });
+
+  it('deletes from the device and queues the deletion', async () => {
+    const repo = createMemoryHistoryRepo();
+    await saveFinishedWorkout(benchWorkout('w1', 100, 5, 0), LIBRARY, repo);
+    await outbox.clear();
+
+    await deleteSavedWorkout('w1', repo);
+
+    expect(await repo.load('w1')).toBeNull();
+    expect(outbox.items).toEqual([
+      expect.objectContaining({ entity: 'workout', entityId: 'w1', op: 'delete' }),
+    ]);
+  });
+
+  it('lists summaries newest first with their record counts', async () => {
+    const repo = createMemoryHistoryRepo();
+    await saveFinishedWorkout(benchWorkout('w1', 100, 5, 0), LIBRARY, repo);
+    await saveFinishedWorkout(benchWorkout('w2', 105, 5, 86_400_000), LIBRARY, repo);
+
+    const list = await repo.list();
+
+    expect(list.map((w) => [w.id, w.prCount, w.exerciseNames])).toEqual([
+      ['w2', 4, ['Bench Press (Barbell)']],
+      ['w1', 0, ['Bench Press (Barbell)']],
+    ]);
   });
 });

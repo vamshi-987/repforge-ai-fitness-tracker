@@ -35,15 +35,54 @@ export interface WorkoutExtras {
   records: RecordEntry[];
 }
 
+/** One row of the history list and the calendar. */
+export interface WorkoutSummary {
+  id: string;
+  title: string;
+  startedAt: number;
+  endedAt: number;
+  volumeKg: number;
+  setCount: number;
+  /** In workout order. */
+  exerciseNames: string[];
+  /** Records beaten in this workout (baselines don't count). */
+  prCount: number;
+}
+
+export interface SyncInfo {
+  /** The server's version; 0 until the server has the workout. */
+  version: number;
+  syncedAt: number | null;
+}
+
+export function summarize(workout: SavedWorkout & WorkoutExtras): WorkoutSummary {
+  return {
+    id: workout.id,
+    title: workout.title,
+    startedAt: workout.startedAt,
+    endedAt: workout.endedAt,
+    volumeKg: workout.volumeKg,
+    setCount: workout.setCount,
+    exerciseNames: workout.exercises.map((e) => e.name),
+    prCount: workout.records.filter((r) => r.previous !== null).length,
+  };
+}
+
 /** The device's workout history. SQLite in the app, in memory in tests. */
 export interface HistoryRepo {
   /** Exercise id → the sets of the latest finished workout that included it, in order. */
   previousSets(exerciseIds: string[]): Promise<Record<string, PreviousSet[]>>;
-  /** Exercise id → the best value stored for each record type. */
-  bestRecords(exerciseIds: string[]): Promise<PreviousBests>;
+  /** Exercise id → the best value stored for each record type, optionally leaving out one
+   * workout's own records (when that workout is being edited). */
+  bestRecords(exerciseIds: string[], exceptWorkoutId?: string): Promise<PreviousBests>;
   /** Save a finished workout and its extras, all or nothing. */
   save(workout: SavedWorkout, extras: WorkoutExtras): Promise<void>;
   load(workoutId: string): Promise<(SavedWorkout & WorkoutExtras) | null>;
+  /** Newest first. */
+  list(): Promise<WorkoutSummary[]>;
+  syncInfo(workoutId: string): Promise<SyncInfo | null>;
+  /** Replace an edited workout and its extras, keeping its sync state. */
+  replace(workout: SavedWorkout, extras: WorkoutExtras): Promise<void>;
   /** Replace the local copy with the server's (its set ids, totals and records). */
   putServerWorkout(workout: Workout): Promise<void>;
   remove(workoutId: string): Promise<void>;
@@ -94,10 +133,12 @@ export function createMemoryHistoryRepo(initial: SavedWorkout[] = []): HistoryRe
       }
       return result;
     },
-    async bestRecords(exerciseIds) {
+    async bestRecords(exerciseIds, exceptWorkoutId) {
       const wanted = new Set(exerciseIds);
       const bests: PreviousBests = {};
-      for (const record of workouts.flatMap((w) => w.records)) {
+      for (const record of workouts
+        .filter((w) => w.id !== exceptWorkoutId)
+        .flatMap((w) => w.records)) {
         if (!wanted.has(record.exerciseId)) continue;
         const forExercise = (bests[record.exerciseId] ??= {});
         const type: RecordType = record.type;
@@ -112,6 +153,18 @@ export function createMemoryHistoryRepo(initial: SavedWorkout[] = []): HistoryRe
     },
     async load(workoutId) {
       return workouts.find((w) => w.id === workoutId) ?? null;
+    },
+    async list() {
+      return [...workouts].sort((a, b) => b.startedAt - a.startedAt).map(summarize);
+    },
+    async syncInfo(workoutId) {
+      return sync.get(workoutId) ?? null;
+    },
+    async replace(workout, extras) {
+      const info = sync.get(workout.id) ?? { version: 0, syncedAt: null };
+      without(workout.id);
+      workouts.push(JSON.parse(JSON.stringify({ ...workout, ...extras })));
+      sync.set(workout.id, info);
     },
     async putServerWorkout(workout) {
       without(workout.id);

@@ -1,21 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { RecordType, WeightUnit } from '@/api/types';
 import { Button } from '@/components/ui/Button';
+import { RecordsCard } from '@/components/workout/RecordsCard';
 import { formatWeight } from '@/lib/units';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/theme/useTheme';
-import { historyRepo } from '@/workout/historyStore';
-import { personalRecords, RECORD_NAMES, WEIGHT_RECORDS } from '@/workout/records';
+import { useSavedWorkout } from '@/workout/historyStore';
+import { personalRecords } from '@/workout/records';
 import { bestSetLabel, type Units } from '@/workout/setValues';
 import { formatDurationWords } from '@/workout/time';
-
-function formatRecord(type: RecordType, value: number, unit: WeightUnit): string {
-  return WEIGHT_RECORDS.has(type) ? formatWeight(value, unit) : `${value} reps`;
-}
 
 /** Shown right after saving: totals, new personal records, and what was done. */
 export default function WorkoutSummaryScreen() {
@@ -26,11 +21,7 @@ export default function WorkoutSummaryScreen() {
     weight: me?.profile.unit_weight ?? 'kg',
     length: me?.profile.unit_length ?? 'cm',
   };
-  const query = useQuery({
-    queryKey: ['workout', id],
-    queryFn: () => historyRepo.load(id),
-    networkMode: 'always',
-  });
+  const query = useSavedWorkout(id);
   const done = () => router.back();
 
   if (!query.isSuccess) return null;
@@ -85,27 +76,13 @@ export default function WorkoutSummaryScreen() {
           {stat('Sets', String(workout.setCount))}
         </View>
 
-        {prs.length ? (
-          <View
-            accessibilityLabel={`${prs.length} new personal record${prs.length === 1 ? '' : 's'}`}
-            style={[card, { gap: spacing.sm, borderColor: colors.warning, borderWidth: 2 }]}
-          >
-            <Text style={[typography.heading, { color: colors.text }]}>
-              🏆 {prs.length === 1 ? 'New personal record!' : `${prs.length} new personal records!`}
-            </Text>
-            {prs.map((pr) => (
-              <View key={`${pr.exerciseId}-${pr.type}`}>
-                <Text style={[typography.body, styles.bold, { color: colors.text }]}>
-                  {pr.exerciseName}
-                </Text>
-                <Text style={[typography.caption, { color: colors.textMuted }]}>
-                  {RECORD_NAMES[pr.type]}: {formatRecord(pr.type, pr.value, units.weight)} (was{' '}
-                  {formatRecord(pr.type, pr.previous, units.weight)})
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+        <RecordsCard
+          records={prs}
+          unit={units.weight}
+          heading={
+            prs.length === 1 ? 'New personal record!' : `${prs.length} new personal records!`
+          }
+        />
 
         <View style={{ gap: spacing.sm }}>
           {workout.exercises.map((exercise) => (

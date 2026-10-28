@@ -21,9 +21,12 @@ export default function ProfileScreen() {
       {body.length ? (
         <Text style={[typography.body, { color: colors.text }]}>{body.join(' · ')}</Text>
       ) : null}
-      <Text style={[typography.body, { color: colors.textMuted }]}>
-        Stats, calendar and body measurements arrive in later phases.
-      </Text>
+      <Button label="Workout history" variant="secondary" onPress={() => router.push('/history')} />
+      <Button
+        label="Calendar"
+        variant="secondary"
+        onPress={() => router.push('/history/calendar')}
+      />
       <Button label="Settings" variant="secondary" onPress={() => router.push('/settings')} />
     </Screen>
   );
