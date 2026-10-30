@@ -8,6 +8,7 @@ import type { SyncEntity } from '@/api/types';
 import { LIBRARY_QUERY_KEY, libraryRepo } from '@/exercises/library';
 import { EXERCISE_STATS_KEY } from '@/exercises/stats';
 import { ROUTINES_QUERY_KEY, routineRepo } from '@/routines/store';
+import { STATS_KEY } from '@/stats/dashboard';
 import { HISTORY_QUERY_KEY, historyRepo, PREVIOUS_SETS_KEY } from '@/workout/historyStore';
 
 import { workoutChange } from './changes';
@@ -34,7 +35,7 @@ export const ENTITY_QUERIES: Record<SyncEntity, readonly (readonly unknown[])[]>
   exercise: [LIBRARY_QUERY_KEY],
   routine_folder: [ROUTINES_QUERY_KEY],
   routine: [ROUTINES_QUERY_KEY],
-  workout: [[PREVIOUS_SETS_KEY], HISTORY_QUERY_KEY, [EXERCISE_STATS_KEY]],
+  workout: [[PREVIOUS_SETS_KEY], HISTORY_QUERY_KEY, [EXERCISE_STATS_KEY], [STATS_KEY]],
 };
 
 /** Workouts finished before sync existed (or whose queue entry was lost) go out too. */

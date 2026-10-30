@@ -365,3 +365,27 @@ export interface ExerciseStats {
   points: ExercisePoint[];
   records: ExerciseRecord[];
 }
+
+export interface WeekStats {
+  /** Monday, YYYY-MM-DD in the user's timezone. */
+  week_start: string;
+  workouts: number;
+  duration_s: number;
+  volume_kg: number;
+  sets: number;
+}
+
+export interface StatsSummary {
+  range: StatsRange;
+  workouts: number;
+  duration_s: number;
+  volume_kg: number;
+  sets: number;
+  weeks: WeekStats[];
+  streak_weeks: number;
+}
+
+export interface MuscleStats {
+  range: StatsRange;
+  muscles: { slug: string; name: string; body_map_key: string; sets: number }[];
+}
