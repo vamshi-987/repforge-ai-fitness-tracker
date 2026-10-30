@@ -2,7 +2,7 @@ import type { RecordType, SetType, Workout, WorkoutVisibility } from '@/api/type
 
 import type { PreviousBests, RecordEntry } from './records';
 import { fromServerWorkout } from './serverWorkout';
-import type { WorkoutExercise } from './types';
+import type { WorkoutExercise, WorkoutSet } from './types';
 
 /** A finished workout as stored on the device (only completed sets). */
 export interface SavedWorkout {
@@ -49,6 +49,14 @@ export interface WorkoutSummary {
   prCount: number;
 }
 
+/** One workout's sets of an exercise, for the exercise's history tab. */
+export interface ExerciseSession {
+  workoutId: string;
+  title: string;
+  startedAt: number;
+  sets: WorkoutSet[];
+}
+
 export interface SyncInfo {
   /** The server's version; 0 until the server has the workout. */
   version: number;
@@ -80,6 +88,8 @@ export interface HistoryRepo {
   load(workoutId: string): Promise<(SavedWorkout & WorkoutExtras) | null>;
   /** Newest first. */
   list(): Promise<WorkoutSummary[]>;
+  /** Every session of one exercise, newest first (sets of an exercise done twice merged). */
+  exerciseSessions(exerciseId: string): Promise<ExerciseSession[]>;
   syncInfo(workoutId: string): Promise<SyncInfo | null>;
   /** Replace an edited workout and its extras, keeping its sync state. */
   replace(workout: SavedWorkout, extras: WorkoutExtras): Promise<void>;
@@ -156,6 +166,18 @@ export function createMemoryHistoryRepo(initial: SavedWorkout[] = []): HistoryRe
     },
     async list() {
       return [...workouts].sort((a, b) => b.startedAt - a.startedAt).map(summarize);
+    },
+    async exerciseSessions(exerciseId) {
+      return [...workouts]
+        .sort((a, b) => b.startedAt - a.startedAt)
+        .flatMap((w) => {
+          const sets = w.exercises
+            .filter((e) => e.exerciseId === exerciseId)
+            .flatMap((e) => e.sets);
+          return sets.length
+            ? [{ workoutId: w.id, title: w.title, startedAt: w.startedAt, sets }]
+            : [];
+        });
     },
     async syncInfo(workoutId) {
       return sync.get(workoutId) ?? null;

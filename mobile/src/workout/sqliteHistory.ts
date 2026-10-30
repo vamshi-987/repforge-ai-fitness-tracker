@@ -10,7 +10,13 @@ import {
 } from '@/db/schema';
 import { newId } from '@/lib/ids';
 
-import type { HistoryRepo, PreviousSet, SavedWorkout, WorkoutExtras } from './history';
+import type {
+  ExerciseSession,
+  HistoryRepo,
+  PreviousSet,
+  SavedWorkout,
+  WorkoutExtras,
+} from './history';
 import type { PreviousBests } from './records';
 import { fromServerWorkout } from './serverWorkout';
 import type { WorkoutExercise } from './types';
@@ -257,6 +263,43 @@ export const sqliteHistoryRepo: HistoryRepo = {
       exerciseNames: names.get(w.id) ?? [],
       prCount: prs.get(w.id) ?? 0,
     }));
+  },
+
+  async exerciseSessions(exerciseId) {
+    const rows = db
+      .select({
+        workoutId: workouts.id,
+        title: workouts.title,
+        startedAt: workouts.startedAt,
+        set: workoutSets,
+      })
+      .from(workoutSets)
+      .innerJoin(workoutExercises, eq(workoutExercises.id, workoutSets.workoutExerciseId))
+      .innerJoin(workouts, eq(workouts.id, workoutExercises.workoutId))
+      .where(and(eq(workoutExercises.exerciseId, exerciseId), isNull(workouts.deletedAt)))
+      .orderBy(desc(workouts.startedAt), asc(workoutExercises.position), asc(workoutSets.position))
+      .all();
+    const sessions = new Map<string, ExerciseSession>();
+    for (const row of rows) {
+      const entry = sessions.get(row.workoutId) ?? {
+        workoutId: row.workoutId,
+        title: row.title,
+        startedAt: row.startedAt,
+        sets: [],
+      };
+      entry.sets.push({
+        id: row.set.id,
+        type: row.set.setType,
+        weightKg: row.set.weightKg,
+        reps: row.set.reps,
+        durationS: row.set.durationS,
+        distanceM: row.set.distanceM,
+        rpe: row.set.rpe,
+        completed: row.set.completed,
+      });
+      sessions.set(row.workoutId, entry);
+    }
+    return [...sessions.values()];
   },
 
   async syncInfo(workoutId) {

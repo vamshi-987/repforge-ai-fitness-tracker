@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ExerciseMedia } from '@/components/ExerciseMedia';
+import { ExerciseCharts } from '@/components/exercise/ExerciseCharts';
+import { ExerciseHistory } from '@/components/exercise/ExerciseHistory';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { deleteCustomExercise, duplicateExercise } from '@/exercises/actions';
@@ -11,6 +13,7 @@ import { friendlyError, typeLabel } from '@/exercises/form';
 import { LIBRARY_QUERY_KEY, useLibrary } from '@/exercises/library';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/theme/useTheme';
+import type { Units } from '@/workout/setValues';
 
 type Section = 'about' | 'history' | 'charts';
 
@@ -19,7 +22,13 @@ export default function ExerciseDetailScreen() {
   const { colors, radius, spacing, typography } = useTheme();
   const queryClient = useQueryClient();
   const library = useLibrary();
-  const sex = useAuth((state) => state.me?.profile.sex);
+  const me = useAuth((state) => state.me);
+  const sex = me?.profile.sex;
+  const isPro = me?.is_pro ?? false;
+  const units: Units = {
+    weight: me?.profile.unit_weight ?? 'kg',
+    length: me?.profile.unit_length ?? 'cm',
+  };
   const [section, setSection] = useState<Section>('about');
   const [busy, setBusy] = useState<'duplicate' | 'delete' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -152,12 +161,10 @@ export default function ExerciseDetailScreen() {
             </Text>
           ) : null}
         </View>
+      ) : section === 'history' ? (
+        <ExerciseHistory exerciseId={exercise.id} type={exercise.type} units={units} />
       ) : (
-        <Text style={[typography.body, { color: colors.textMuted }]}>
-          {section === 'history'
-            ? 'Your sets for this exercise will appear here once you log workouts.'
-            : 'Charts of your heaviest weight, estimated 1RM and volume will appear here once you log workouts.'}
-        </Text>
+        <ExerciseCharts exerciseId={exercise.id} unit={units.weight} isPro={isPro} />
       )}
 
       {error ? (
