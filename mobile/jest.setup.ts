@@ -49,6 +49,12 @@ jest.mock('@/sync/sqliteOutbox', () => {
   return { sqliteOutbox: createMemoryOutbox(), sqliteCursor: createMemoryCursor() };
 });
 
+// Weigh-ins and measurements: in-memory (inspect with jest.requireMock('@/body/sqliteRepo')).
+jest.mock('@/body/sqliteRepo', () => {
+  const { createMemoryBodyRepo } = jest.requireActual<typeof import('@/body/repo')>('@/body/repo');
+  return { sqliteBodyRepo: createMemoryBodyRepo() };
+});
+
 jest.mock('@react-native-community/netinfo', () =>
   jest.requireActual('@react-native-community/netinfo/jest/netinfo-mock.js'),
 );

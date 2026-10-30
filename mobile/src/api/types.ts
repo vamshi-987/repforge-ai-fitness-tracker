@@ -297,7 +297,8 @@ export interface WorkoutPut {
 
 // --- sync (docs/api.md § Sync) ------------------------------------------------------------
 
-export type SyncEntity = 'exercise' | 'routine_folder' | 'routine' | 'workout';
+export type SyncEntity =
+  'exercise' | 'routine_folder' | 'routine' | 'workout' | 'body_weight' | 'body_measurement';
 export type SyncOp = 'upsert' | 'delete';
 
 export interface SyncChange {
@@ -388,4 +389,71 @@ export interface StatsSummary {
 export interface MuscleStats {
   range: StatsRange;
   muscles: { slug: string; name: string; body_map_key: string; sets: number }[];
+}
+
+// --- body (docs/api.md § Body) ------------------------------------------------------------
+
+export type WeightSource = 'manual' | 'health';
+
+export interface BodyWeight {
+  id: string;
+  measured_at: string;
+  weight_kg: number;
+  source: WeightSource;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type MeasurementKind =
+  | 'waist'
+  | 'chest'
+  | 'hips'
+  | 'neck'
+  | 'shoulders'
+  | 'left_arm'
+  | 'right_arm'
+  | 'left_thigh'
+  | 'right_thigh'
+  | 'left_calf'
+  | 'right_calf'
+  | 'body_fat';
+
+export interface BodyMeasurement {
+  id: string;
+  measured_at: string;
+  kind: MeasurementKind;
+  /** cm, or % for body fat. */
+  value: number;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PhotoPose = 'front' | 'side' | 'back';
+
+export interface ProgressPhoto {
+  id: string;
+  taken_at: string;
+  pose: PhotoPose | null;
+  /** Signed, short-lived. */
+  url: string;
+  url_expires_at: string;
+  version: number;
+  created_at: string;
+}
+
+export interface PhotoPage {
+  items: ProgressPhoto[];
+  next_cursor: string | null;
+}
+
+export type UploadContentType = 'image/jpeg' | 'image/png' | 'image/heic';
+
+export interface Upload {
+  object_key: string;
+  upload_url: string;
+  method: 'PUT';
+  headers: Record<string, string>;
+  expires_at: string;
 }

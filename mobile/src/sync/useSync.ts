@@ -5,6 +5,7 @@ import { Alert, AppState } from 'react-native';
 
 import * as syncApi from '@/api/sync';
 import type { SyncEntity } from '@/api/types';
+import { BODY_QUERY_KEY, bodyRepo } from '@/body/store';
 import { LIBRARY_QUERY_KEY, libraryRepo } from '@/exercises/library';
 import { EXERCISE_STATS_KEY } from '@/exercises/stats';
 import { ROUTINES_QUERY_KEY, routineRepo } from '@/routines/store';
@@ -26,7 +27,12 @@ export const QUEUE_DEBOUNCE_MS = 500;
 export const syncEngine = new SyncEngine({
   outbox,
   api: { push: syncApi.pushChanges, pull: syncApi.pullChanges },
-  local: createLocalStore({ library: libraryRepo, routines: routineRepo, history: historyRepo }),
+  local: createLocalStore({
+    library: libraryRepo,
+    routines: routineRepo,
+    history: historyRepo,
+    body: bodyRepo,
+  }),
   cursor: sqliteCursor,
 });
 
@@ -36,6 +42,8 @@ export const ENTITY_QUERIES: Record<SyncEntity, readonly (readonly unknown[])[]>
   routine_folder: [ROUTINES_QUERY_KEY],
   routine: [ROUTINES_QUERY_KEY],
   workout: [[PREVIOUS_SETS_KEY], HISTORY_QUERY_KEY, [EXERCISE_STATS_KEY], [STATS_KEY]],
+  body_weight: [BODY_QUERY_KEY],
+  body_measurement: [BODY_QUERY_KEY],
 };
 
 /** Workouts finished before sync existed (or whose queue entry was lost) go out too. */
@@ -52,6 +60,7 @@ export async function forgetSyncState(): Promise<void> {
   await outbox.clear();
   await sqliteCursor.clear();
   await historyRepo.clear();
+  await bodyRepo.clear();
 }
 
 function showNotices(notices: SyncNotice[]): void {

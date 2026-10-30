@@ -10,6 +10,8 @@ import {
 
 import type {
   ExerciseType,
+  MeasurementKind,
+  WeightSource,
   RecordType,
   Routine,
   RoutineFolder,
@@ -209,4 +211,31 @@ export const outbox = sqliteTable(
     nextTryAt: integer('next_try_at').notNull(),
   },
   (t) => [uniqueIndex('outbox_entity_row_idx').on(t.entity, t.entityId)],
+);
+
+// --- body (synced as body_weight / body_measurement) ---------------------------------------
+// Times are epoch ms; version is the server's (0 until it has the row).
+
+export const bodyWeights = sqliteTable(
+  'body_weights',
+  {
+    id: text('id').primaryKey(),
+    measuredAt: integer('measured_at').notNull(),
+    weightKg: real('weight_kg').notNull(),
+    source: text('source').$type<WeightSource>().notNull(),
+    version: integer('version').notNull(),
+  },
+  (t) => [index('body_weights_measured_at_idx').on(t.measuredAt)],
+);
+
+export const bodyMeasurements = sqliteTable(
+  'body_measurements',
+  {
+    id: text('id').primaryKey(),
+    measuredAt: integer('measured_at').notNull(),
+    kind: text('kind').$type<MeasurementKind>().notNull(),
+    value: real('value').notNull(),
+    version: integer('version').notNull(),
+  },
+  (t) => [index('body_measurements_measured_at_idx').on(t.measuredAt)],
 );
