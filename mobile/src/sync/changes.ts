@@ -1,5 +1,12 @@
 /** The outbox entry for each kind of local change (docs/api.md § Sync, the `data` shapes). */
-import type { Exercise, Routine, RoutineFolder, SyncEntity } from '@/api/types';
+import type {
+  BodyMeasurement,
+  BodyWeight,
+  Exercise,
+  Routine,
+  RoutineFolder,
+  SyncEntity,
+} from '@/api/types';
 import type { SavedWorkout } from '@/workout/history';
 import { toWorkoutPut } from '@/workout/serverWorkout';
 
@@ -66,6 +73,30 @@ export function workoutChange(workout: SavedWorkout, version = 0): QueuedChange 
     op: 'upsert',
     baseVersion: baseVersion(version),
     data: { ...toWorkoutPut(workout) },
+  };
+}
+
+export function weightChange(weight: BodyWeight): QueuedChange {
+  return {
+    entity: 'body_weight',
+    entityId: weight.id,
+    op: 'upsert',
+    baseVersion: baseVersion(weight.version),
+    data: { measured_at: weight.measured_at, weight_kg: weight.weight_kg, source: weight.source },
+  };
+}
+
+export function measurementChange(measurement: BodyMeasurement): QueuedChange {
+  return {
+    entity: 'body_measurement',
+    entityId: measurement.id,
+    op: 'upsert',
+    baseVersion: baseVersion(measurement.version),
+    data: {
+      measured_at: measurement.measured_at,
+      kind: measurement.kind,
+      value: measurement.value,
+    },
   };
 }
 

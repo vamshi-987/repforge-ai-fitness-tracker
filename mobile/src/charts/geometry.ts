@@ -36,19 +36,35 @@ export function yDomain(values: number[]): [number, number] {
   return [low, max + pad];
 }
 
-/** Points of a line chart, x by value (time) and y by `yDomain`; one point is centred. */
-export function linePoints(data: Datum[], frame: Frame): Point[] {
-  if (data.length === 0) return [];
-  const xs = data.map((d) => d.x);
-  const [low, high] = yDomain(data.map((d) => d.y));
-  const xMin = Math.min(...xs);
-  const xMax = Math.max(...xs);
+export interface Domain {
+  x: [number, number];
+  y: [number, number];
+}
+
+/** The x range and padded y range covering every series together. */
+export function domainOf(...series: Datum[][]): Domain | null {
+  const all = series.flat();
+  if (all.length === 0) return null;
+  const xs = all.map((d) => d.x);
+  return { x: [Math.min(...xs), Math.max(...xs)], y: yDomain(all.map((d) => d.y)) };
+}
+
+/** Points scaled into the frame by a given domain; a zero-width x range centres them. */
+export function scalePoints(data: Datum[], frame: Frame, domain: Domain): Point[] {
+  const [xMin, xMax] = domain.x;
+  const [low, high] = domain.y;
   const innerW = frame.width - frame.left - frame.right;
   const innerH = frame.height - frame.top - frame.bottom;
   return data.map((d) => ({
     x: frame.left + (xMax === xMin ? innerW / 2 : ((d.x - xMin) / (xMax - xMin)) * innerW),
     y: frame.top + innerH - ((d.y - low) / (high - low)) * innerH,
   }));
+}
+
+/** Points of a line chart, x by value (time) and y by `yDomain`; one point is centred. */
+export function linePoints(data: Datum[], frame: Frame): Point[] {
+  const domain = domainOf(data);
+  return domain ? scalePoints(data, frame, domain) : [];
 }
 
 /** SVG path through the points: "M x y L x y …". */

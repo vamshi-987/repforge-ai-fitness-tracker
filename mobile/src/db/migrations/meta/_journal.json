@@ -50,6 +50,13 @@
       "when": 1793160437270,
       "tag": "0006_fluffy_skreet",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793362196726,
+      "tag": "0007_fixed_boomerang",
+      "breakpoints": true
     }
   ]
 }

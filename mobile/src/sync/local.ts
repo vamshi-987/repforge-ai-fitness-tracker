@@ -1,4 +1,12 @@
-import type { Exercise, Routine, RoutineFolder, Workout } from '@/api/types';
+import type {
+  BodyMeasurement,
+  BodyWeight,
+  Exercise,
+  Routine,
+  RoutineFolder,
+  Workout,
+} from '@/api/types';
+import type { BodyRepo } from '@/body/repo';
 import type { LibraryRepo } from '@/exercises/repo';
 import type { RoutineRepo } from '@/routines/repo';
 import type { HistoryRepo } from '@/workout/history';
@@ -10,6 +18,7 @@ export function createLocalStore(repos: {
   library: LibraryRepo;
   routines: RoutineRepo;
   history: HistoryRepo;
+  body: BodyRepo;
 }): LocalStore {
   return {
     async apply(entity, id, data) {
@@ -28,6 +37,12 @@ export function createLocalStore(repos: {
             : repos.routines.removeRoutine(id);
         case 'workout':
           return data ? repos.history.putServerWorkout(data as Workout) : repos.history.remove(id);
+        case 'body_weight':
+          return data ? repos.body.putWeight(data as BodyWeight) : repos.body.removeWeight(id);
+        case 'body_measurement':
+          return data
+            ? repos.body.putMeasurement(data as BodyMeasurement)
+            : repos.body.removeMeasurement(id);
       }
     },
   };
