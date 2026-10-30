@@ -136,6 +136,7 @@ export default function ProfileScreen() {
         variant="secondary"
         onPress={() => router.push('/history/calendar')}
       />
+      <Button label="Tools" variant="secondary" onPress={() => router.push('/tools')} />
       <Button label="Settings" variant="secondary" onPress={() => router.push('/settings')} />
     </Screen>
   );
