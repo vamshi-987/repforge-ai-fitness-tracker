@@ -8,6 +8,8 @@ import logging
 import uuid
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -132,3 +134,72 @@ def session_point(exercise_type: ExerciseType, sets: Sequence[SetPerf]) -> Sessi
         session_volume_kg=value(RecordType.SESSION_VOLUME),
         total_reps=reps if counts_reps(exercise_type) else None,
     )
+
+
+# --- training calendar: weeks, days and streaks (in the user's timezone) -------------------
+
+
+@dataclass(frozen=True)
+class WorkoutMark:
+    started_at: datetime
+    duration_s: int
+    volume_kg: float
+    sets: int
+
+
+@dataclass
+class Bucket:
+    workouts: int = 0
+    duration_s: int = 0
+    volume_kg: float = 0.0
+    sets: int = 0
+
+    def add(self, mark: WorkoutMark) -> None:
+        self.workouts += 1
+        self.duration_s += mark.duration_s
+        self.volume_kg = round_half_up(self.volume_kg + mark.volume_kg, 2)
+        self.sets += mark.sets
+
+
+def local_day(moment: datetime, tz: ZoneInfo) -> date:
+    return moment.astimezone(tz).date()
+
+
+def week_start(day: date) -> date:
+    """The Monday of the day's week (ISO weeks)."""
+    return day - timedelta(days=day.weekday())
+
+
+def weekly_buckets(
+    marks: Iterable[WorkoutMark], first_week: date, last_week: date, tz: ZoneInfo
+) -> dict[date, Bucket]:
+    """Every week from `first_week` to `last_week` (Mondays), empty weeks included."""
+    weeks: dict[date, Bucket] = {}
+    week = first_week
+    while week <= last_week:
+        weeks[week] = Bucket()
+        week += timedelta(days=7)
+    for mark in marks:
+        bucket = weeks.get(week_start(local_day(mark.started_at, tz)))
+        if bucket is not None:
+            bucket.add(mark)
+    return weeks
+
+
+def streak_weeks(trained_weeks: set[date], this_week: date) -> int:
+    """Consecutive weeks with at least one workout, up to now. The current week still
+    counts as kept while it has no workout yet, so a streak doesn't break on a Monday."""
+    week = this_week if this_week in trained_weeks else this_week - timedelta(days=7)
+    streak = 0
+    while week in trained_weeks:
+        streak += 1
+        week -= timedelta(days=7)
+    return streak
+
+
+def daily_counts(marks: Iterable[WorkoutMark], tz: ZoneInfo) -> dict[date, int]:
+    counts: dict[date, int] = {}
+    for mark in marks:
+        day = local_day(mark.started_at, tz)
+        counts[day] = counts.get(day, 0) + 1
+    return counts

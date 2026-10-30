@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from enum import StrEnum
 
 from pydantic import BaseModel
@@ -74,3 +74,52 @@ class ExerciseStatsOut(BaseModel):
     points: list[ExercisePoint]
     # Current all-time bests, whatever the range.
     records: list[ExerciseRecordOut]
+
+
+# --- dashboard (GET /stats/*) -------------------------------------------------------------
+
+
+class WeekStats(BaseModel):
+    # Monday of the week, in the user's timezone.
+    week_start: date
+    workouts: int
+    duration_s: int
+    volume_kg: float
+    sets: int
+
+
+class StatsSummary(BaseModel):
+    range: StatsRange
+    workouts: int
+    duration_s: int
+    volume_kg: float
+    sets: int
+    # Oldest first, every week of the range (empty ones included).
+    weeks: list[WeekStats]
+    # Weeks in a row with at least one workout, up to this week.
+    streak_weeks: int
+
+
+class MuscleSets(BaseModel):
+    slug: str
+    name: str
+    body_map_key: str
+    sets: float
+
+
+class MuscleStats(BaseModel):
+    range: StatsRange
+    # Most-trained first; muscles not trained in the range are left out.
+    muscles: list[MuscleSets]
+
+
+class CalendarDay(BaseModel):
+    date: date
+    workouts: int
+
+
+class CalendarMonth(BaseModel):
+    month: str
+    # Only days with a workout.
+    days: list[CalendarDay]
+    streak_weeks: int

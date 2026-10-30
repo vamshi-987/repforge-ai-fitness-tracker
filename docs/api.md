@@ -627,3 +627,39 @@ Every row of the caller's that changed after `since`, oldest change first. A fir
 - `exercise` changes are the caller's custom exercises only; the library syncs through `GET /exercises`.
 - A workout whose records changed because an earlier workout was synced or deleted comes back with a new `version`.
 - **No change is ever skipped:** every insert or update of a syncable row takes the next `change_seq` from one sequence, and a pull waits until the caller's writes in flight have committed, so a row can't become visible behind a cursor that has already moved past it.
+
+---
+
+## Stats
+
+The profile dashboard. All three endpoints need `Authorization: Bearer <access_token>` and read only the caller's own workouts (deleted ones left out). Weeks run Monday–Sunday and days are dates **in the user's timezone** (`/me/profile` `timezone`). Results are cached for 10 minutes and refreshed at once when a workout is saved or deleted.
+
+`range` is `1m`, `3m`, `1y` or `all`; `1y` and `all` need Pro (**403** `pro_required`, PLAN.md G5).
+
+### `GET /v1/stats/summary`
+`?range=` (default `3m`).
+```json
+{
+  "range": "3m", "workouts": 14, "duration_s": 50400, "volume_kg": 61250.0, "sets": 230,
+  "weeks": [{"week_start": "2026-08-03", "workouts": 1, "duration_s": 3600, "volume_kg": 4100.0, "sets": 16}],
+  "streak_weeks": 6
+}
+```
+- `weeks`: every week of the range, oldest first, empty weeks included (for `all`, from the week of the first workout).
+- `streak_weeks`: weeks in a row with at least one workout, up to now. The current week keeps the streak alive until it ends, so an empty Monday doesn't break it.
+
+**200** · **403** `pro_required` · **422** (unknown range)
+
+### `GET /v1/stats/muscles`
+`?range=` (default `1m`). Sets per muscle from the stored `muscle_sets` (each completed working set counts 1 for the primary muscle, 0.5 for each secondary), most trained first; untrained muscles are left out.
+```json
+{"range": "1m", "muscles": [{"slug": "chest", "name": "Chest", "body_map_key": "chest", "sets": 24.0}]}
+```
+**200** · **403** `pro_required` · **422**
+
+### `GET /v1/stats/calendar`
+`?month=YYYY-MM` (required). The days of that month with a workout, and the current streak.
+```json
+{"month": "2026-10", "days": [{"date": "2026-10-01", "workouts": 1}], "streak_weeks": 3}
+```
+**200** · **422** (`month` not `YYYY-MM`, at `["query", "month"]`)
