@@ -105,7 +105,7 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 | `backend/seeds/*.json` (exercise library) | `make seed` | Upserts the library; unchanged rows are not touched, removed exercises are archived. A seed that changes an existing exercise's `type` is refused |
 | `infra/postgres/init/*.sql` | `make nuke && make up && make migrate` ⚠️ wipes data | Init scripts run only on a fresh volume |
 | `infra/seaweedfs/s3.json` | `docker compose restart s3` | The config is read at startup |
-| `mobile/package.json` / `pnpm-lock.yaml` | `make mobile-install`, then restart `make mobile-start` | New JS packages (Phase 1 added `expo-secure-store`, `expo-localization`; Phase 2 added `react-native-svg`, `react-native-body-highlighter`, `expo-video`; Phase 3 added `expo-crypto`, `expo-notifications`, `expo-keep-awake`, `expo-haptics`) |
+| `mobile/package.json` / `pnpm-lock.yaml` | `make mobile-install`, then restart `make mobile-start` | New JS packages (Phase 1 added `expo-secure-store`, `expo-localization`; Phase 2 added `react-native-svg`, `react-native-body-highlighter`, `expo-video`; Phase 3 added `expo-crypto`, `expo-notifications`, `expo-keep-awake`, `expo-haptics`; Phase 4 added `@react-native-community/netinfo`) |
 | `.env.example` gained variables (Phase 1: `JWT_SECRET`, `GOOGLE_CLIENT_IDS`, `APPLE_CLIENT_IDS`, `LOGIN_RATE_*`; Phase 3: `FREE_ROUTINE_LIMIT`) | Copy the new lines into `.env` if you want non-default values, then `make up` | Defaults work for dev; `make up` recreates containers with the new env |
 | `mobile/src/db/schema.ts` (local SQLite tables) | `cd mobile && pnpm db:generate` and commit the new files in `src/db/migrations/` | The app runs these on launch |
 | `mobile/app.json`, `babel.config.js`, `metro.config.js` | `cd mobile && pnpm start --clear` | Clears Metro's cache |
@@ -122,6 +122,7 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 ### Mobile local database
 - Phase 2 added the offline exercise library (`muscles`, `equipment`, `exercises`). The app downloads it the first time it opens online after sign-in (Workout → Exercise library shows "Downloading…"), then only revalidates. Run `make seed` first, or the server has no library to send.
 - Phase 3 added `routines` and `routine_folders` (a mirror of the server's routines, refreshed when the Workout tab opens or is pulled down), `active_workout` (the workout being logged, saved 300 ms after each change), and the local history: `workouts`, `workout_exercises`, `workout_sets`, `workout_muscle_sets`, `personal_records`. Finished workouts stay on the phone with `synced_at = NULL` until Phase 4's sync engine sends them.
+- Phase 4 added the sync `outbox` and a `version` column on `workouts`. Routine, folder, custom-exercise and workout changes are saved on the phone first and sent by the sync engine; workouts saved in Phase 3 are queued once on the next launch. Signing out clears the outbox, the sync cursor and the workout history (they come back from the server on the next sign-in).
 - The phone's SQLite database is migrated automatically when the app launches (`DatabaseProvider`).
 - To start fresh on the device, delete the app's data: long-press Expo Go → App info → Clear storage (Android), or reinstall Expo Go (iOS).
 
@@ -158,7 +159,18 @@ Free accounts can keep 4 routines (`FREE_ROUTINE_LIMIT`). To test as Pro:
 ```bash
 docker compose exec postgres psql -U repforge repforge -c "update users set is_pro = true where email = 'me@example.com'"
 ```
-Pull down on the Workout tab afterwards to refresh the limit.
+Pull down on the Workout tab afterwards to refresh the limit. Pro also unlocks the 1-year and all-time stats and charts.
+
+### Trying sync, history and stats by hand (Phase 4)
+Run `make migrate` first (0006 workouts, 0007 the sync cursor).
+1. Turn on airplane mode. Finish a workout, create a routine and a custom exercise: all of it works.
+2. Turn the network back on. Within a second the app pushes (NetInfo reconnect skips the backoff); the workout is on the server once: `docker compose exec postgres psql -U repforge repforge -c "select id, title, version from workouts order by created_at desc limit 3"`.
+3. Sign in to the same account on a second phone (or Expo Go after clearing its storage): the routine, custom exercise and workout arrive on the first sync (pull from cursor 0).
+4. Profile → **Workout history** → a workout → **Edit workout** (within 24 h of its end): change a weight, untick a set, save. The other phone shows the change after its next sync. Older workouts show only **Delete**.
+5. Profile shows weekly totals, the streak and the muscle heat map; an exercise's **Charts** tab shows its progress. `1 year` / `All` are Pro (make yourself Pro with the SQL below).
+6. Profile → **Tools** for the plate, 1RM and warm-up calculators (offline, in your units).
+
+To watch sync on the API: `make logs` and look for `/v1/sync/push` and `/v1/sync/pull`.
 
 ### Auth in development
 ```bash
