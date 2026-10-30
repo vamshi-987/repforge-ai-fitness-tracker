@@ -4,7 +4,14 @@
 import app.db.change_lock  # noqa: F401
 from app.db.base import Base
 from app.db.models.auth import RefreshToken
-from app.db.models.body import BodyWeight, WeightSource
+from app.db.models.body import (
+    BodyMeasurement,
+    BodyWeight,
+    MeasurementKind,
+    PhotoPose,
+    ProgressPhoto,
+    WeightSource,
+)
 from app.db.models.exercise import (
     Equipment,
     Exercise,
@@ -40,6 +47,7 @@ __all__ = [
     "ActivityLevel",
     "AuthProvider",
     "Base",
+    "BodyMeasurement",
     "BodyWeight",
     "Equipment",
     "Exercise",
@@ -47,8 +55,11 @@ __all__ = [
     "Experience",
     "Goal",
     "LengthUnit",
+    "MeasurementKind",
     "Muscle",
     "PersonalRecord",
+    "PhotoPose",
+    "ProgressPhoto",
     "RecordType",
     "RefreshToken",
     "Routine",

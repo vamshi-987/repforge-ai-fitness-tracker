@@ -28,7 +28,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import AppError, ConflictError
 from app.db.change_lock import wait_for_changes
 from app.db.mixins import SyncableMixin
-from app.db.models import Exercise, Routine, RoutineFolder, User, Workout
+from app.db.models import (
+    BodyMeasurement,
+    BodyWeight,
+    Exercise,
+    Routine,
+    RoutineFolder,
+    User,
+    Workout,
+)
+from app.schemas.body import MeasurementIn, MeasurementOut, WeightIn, WeightOut
 from app.schemas.exercises import ExerciseCreate, ExerciseUpdate
 from app.schemas.routines import FolderOut
 from app.schemas.sync import (
@@ -46,6 +55,7 @@ from app.schemas.sync import (
     SyncStatus,
 )
 from app.schemas.workouts import WorkoutPut
+from app.services import body as body_service
 from app.services import exercises as exercise_service
 from app.services import routines as routine_service
 from app.services import workouts as workout_service
@@ -167,6 +177,34 @@ async def _workouts_out(session: AsyncSession, rows: Sequence[Any]) -> list[Json
     return [w.model_dump(mode="json") for w in await workout_service.workouts_out(session, rows)]
 
 
+async def _weight_upsert(ctx: Context, weight_id: uuid.UUID, data: Json) -> Json:
+    body = WeightIn.model_validate(data)
+    out = await body_service.put_weight(ctx.session, ctx.user, weight_id, body, ctx.now)
+    return out.model_dump(mode="json")
+
+
+async def _weight_delete(ctx: Context, weight_id: uuid.UUID) -> None:
+    await body_service.delete_weight(ctx.session, ctx.user, weight_id, ctx.now)
+
+
+async def _weights_out(_: AsyncSession, rows: Sequence[Any]) -> list[Json]:
+    return [WeightOut.model_validate(row).model_dump(mode="json") for row in rows]
+
+
+async def _measurement_upsert(ctx: Context, measurement_id: uuid.UUID, data: Json) -> Json:
+    body = MeasurementIn.model_validate(data)
+    out = await body_service.put_measurement(ctx.session, ctx.user, measurement_id, body, ctx.now)
+    return out.model_dump(mode="json")
+
+
+async def _measurement_delete(ctx: Context, measurement_id: uuid.UUID) -> None:
+    await body_service.delete_measurement(ctx.session, ctx.user, measurement_id, ctx.now)
+
+
+async def _measurements_out(_: AsyncSession, rows: Sequence[Any]) -> list[Json]:
+    return [MeasurementOut.model_validate(row).model_dump(mode="json") for row in rows]
+
+
 KINDS: dict[SyncEntity, Kind] = {
     SyncEntity.EXERCISE: Kind(
         Exercise,
@@ -194,6 +232,17 @@ KINDS: dict[SyncEntity, Kind] = {
         _workouts_out,
         _workout_upsert,
         _workout_delete,
+    ),
+    SyncEntity.BODY_WEIGHT: Kind(
+        BodyWeight, BodyWeight.user_id, (), _weights_out, _weight_upsert, _weight_delete
+    ),
+    SyncEntity.BODY_MEASUREMENT: Kind(
+        BodyMeasurement,
+        BodyMeasurement.user_id,
+        (),
+        _measurements_out,
+        _measurement_upsert,
+        _measurement_delete,
     ),
 }
 

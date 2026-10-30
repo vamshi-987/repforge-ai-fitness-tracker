@@ -47,6 +47,19 @@ class Settings(BaseSettings):
     apple_client_ids: list[str] = []
     jwks_cache_ttl_s: int = 12 * 3600
 
+    # --- Object storage (S3 API: SeaweedFS in dev, Cloudflare R2 in prod) ------
+    s3_endpoint_url: str = "http://localhost:9010"
+    # The address phones use for signed URLs (the signature covers the host). In dev, set it
+    # to the computer's LAN address, e.g. http://192.168.1.20:9010. Defaults to the endpoint.
+    s3_public_url: str | None = None
+    s3_access_key: str = "repforge"
+    s3_secret_key: str = "repforge-secret"
+    # R2 accepts "auto"; SeaweedFS and AWS want a real region name.
+    s3_region: str = "us-east-1"
+    s3_bucket_progress_photos: str = "progress-photos"
+    upload_url_ttl_s: int = 15 * 60
+    download_url_ttl_s: int = 60 * 60
+
     # --- Pro limits (PLAN.md G5) --------------------------------------------
     free_routine_limit: int = 4
 
