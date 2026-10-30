@@ -87,7 +87,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
     entrypoint: >
       /bin/sh -c "
-      for b in media food-photos avatars; do
+      for b in media food-photos avatars progress-photos; do
         aws --endpoint-url http://s3:8333 s3api head-bucket --bucket $$b 2>/dev/null ||
         aws --endpoint-url http://s3:8333 s3api create-bucket --bucket $$b || exit 1;
       done; echo buckets ready

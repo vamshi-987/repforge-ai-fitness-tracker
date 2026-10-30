@@ -20,6 +20,8 @@ class SyncEntity(StrEnum):
     ROUTINE_FOLDER = "routine_folder"
     ROUTINE = "routine"
     WORKOUT = "workout"
+    BODY_WEIGHT = "body_weight"
+    BODY_MEASUREMENT = "body_measurement"
 
 
 class SyncOp(StrEnum):

@@ -563,7 +563,7 @@ Soft delete (other devices pull the removal). Records of its exercises are recom
 
 The app works offline: it writes to its own database first and queues each change in an **outbox**. When it can, it pushes the outbox, then pulls everything that changed since its last pull. Both endpoints need `Authorization: Bearer <access_token>`.
 
-Synced entities, in the order the app sends them: `exercise` (custom exercises), `routine_folder`, `routine`, `workout`. Every row is identified by a client-generated UUID.
+Synced entities, in the order the app sends them: `exercise` (custom exercises), `routine_folder`, `routine`, `workout`, `body_weight`, `body_measurement`. Every row is identified by a client-generated UUID.
 
 ### `POST /v1/sync/push`
 ```json
@@ -584,7 +584,7 @@ Synced entities, in the order the app sends them: `exercise` (custom exercises),
 }
 ```
 - Up to 100 changes, applied **in order**, each on its own: one rejected change doesn't stop the others.
-- `data` is the row's **full state** (required for `upsert`, omitted for `delete`): the custom exercise body of `POST /exercises`, `{"name", "position"}` for a folder, the routine body with its `position`, or the `PUT /workouts/{id}` body. The same rules apply as on those endpoints (free routine limit, immutable exercise type, the workout 24-hour rule).
+- `data` is the row's **full state** (required for `upsert`, omitted for `delete`): the custom exercise body of `POST /exercises`, `{"name", "position"}` for a folder, the routine body with its `position`, the `PUT /workouts/{id}` body, or the `POST /body/weights` / `POST /body/measurements` body without `id`. The same rules apply as on those endpoints (free routine limit, immutable exercise type, the workout 24-hour rule).
 - A routine whose `folder_id` is unknown or deleted is saved without a folder rather than refused.
 - `base_version`: the server `version` the edit started from (`null` for a row the device created). `updated_at`: when the edit was made on the device.
 - **Conflicts:** if the server's `version` is newer than `base_version`, two devices edited the row. The later edit by `updated_at` wins (last write wins); a losing edit is answered `stale`. Deletes win over edits: an upsert of a deleted row is `rejected` with `<entity>_deleted`.
@@ -663,3 +663,74 @@ The profile dashboard. All three endpoints need `Authorization: Bearer <access_t
 {"month": "2026-10", "days": [{"date": "2026-10-01", "workouts": 1}], "streak_weeks": 3}
 ```
 **200** · **422** (`month` not `YYYY-MM`, at `["query", "month"]`)
+
+---
+
+## Body
+
+Weigh-ins, body measurements and progress photos. All endpoints need `Authorization: Bearer <access_token>`; another user's IDs answer **404**. Weigh-ins and measurements take an optional client UUID and also sync (`body_weight`, `body_measurement`). Times can't be more than 5 minutes in the future (**422** at `["body", "measured_at"]`).
+
+### `GET /v1/body/weights`
+`?range=1m|3m|1y|all` (default `3m`; not Pro-gated: it's the user's own log).
+```json
+{
+  "items": [{"id": "…", "measured_at": "2026-10-30T06:45:00Z", "weight_kg": 79.4, "source": "manual",
+             "version": 1, "created_at": "…", "updated_at": "…"}],
+  "weeks": [{"week_start": "2026-10-19", "weigh_ins": 4, "average_kg": 80.15},
+            {"week_start": "2026-10-26", "weigh_ins": 2, "average_kg": null}],
+  "latest_kg": 79.4
+}
+```
+- `items` newest first. `weeks`: Monday weeks in the user's timezone that have a weigh-in, oldest first. **`average_kg` needs at least 3 weigh-ins** in the week (CLAUDE.md §4.2 A); otherwise `null`.
+- `latest_kg`: the most recent weigh-in ever (also `/me` `profile.weight_kg`).
+
+### `POST /v1/body/weights`
+`{"id": "optional UUID", "measured_at": "…", "weight_kg": 79.4, "source": "manual"}`. `weight_kg` 25–350 (rounded half-up to 0.01); `source` `manual` or `health`.
+
+**201** weigh-in · **409** `weight_exists` · **422**
+
+### `PATCH /v1/body/weights/{id}` · `DELETE /v1/body/weights/{id}`
+PATCH `measured_at` and/or `weight_kg` (version + 1 on a real change). DELETE is a soft delete.
+
+**200** / **204** · **404** · **422**
+
+### `GET /v1/body/measurements`
+`?kind=&range=` (default `all`). Newest first: `[{"id", "measured_at", "kind", "value", "version", "created_at", "updated_at"}]`.
+
+### `POST /v1/body/measurements`
+`{"id": "optional", "measured_at": "…", "kind": "waist", "value": 82.5}`.
+- `kind`: `waist`, `chest`, `hips`, `neck`, `shoulders`, `left_arm`, `right_arm`, `left_thigh`, `right_thigh`, `left_calf`, `right_calf` (cm, 10–300), or `body_fat` (%, 2–70). Rounded to 0.1.
+
+**201** · **409** `measurement_exists` · **422**
+
+### `PATCH /v1/body/measurements/{id}` · `DELETE /v1/body/measurements/{id}`
+PATCH `measured_at` and/or `value` (checked against the row's kind). **200** / **204** · **404** · **422**
+
+### Progress photos
+Photos never pass through the API: the app asks for a signed upload URL, PUTs the image straight to object storage, then records it.
+
+### `POST /v1/uploads/presign`
+`{"kind": "progress_photo", "content_type": "image/jpeg"}` (`image/jpeg`, `image/png` or `image/heic`).
+```json
+{"object_key": "<user id>/<uuid>.jpg", "upload_url": "https://…/progress-photos/…?X-Amz-Signature=…",
+ "method": "PUT", "headers": {"Content-Type": "image/jpeg"}, "expires_at": "…"}
+```
+PUT the file's bytes to `upload_url` with `headers` before `expires_at` (15 minutes). URLs are AWS Signature V4, path-style, so the same code works with SeaweedFS (dev) and Cloudflare R2 (prod). The host is `S3_PUBLIC_URL` (the phone's view of storage).
+
+**200** · **422**
+
+### `POST /v1/body/photos`
+`{"id": "optional", "object_key": "…", "taken_at": "…", "pose": "front"}` (`pose`: `front`, `side`, `back` or null). The key must be one the caller was given by `/uploads/presign`.
+
+**201** photo · **409** `photo_exists` (id or key already recorded) · **422** (`["body", "object_key"]` for a key that isn't the caller's)
+
+### `GET /v1/body/photos`
+`?cursor=&limit=` (1–50, default 20), newest `taken_at` first.
+```json
+{"items": [{"id": "…", "taken_at": "…", "pose": "front", "url": "https://…?X-Amz-Signature=…",
+            "url_expires_at": "…", "version": 1, "created_at": "…"}], "next_cursor": null}
+```
+`url` is a signed GET valid for an hour: the bucket is private. Fetch the list again for fresh URLs.
+
+### `DELETE /v1/body/photos/{id}`
+Soft delete. **204** · **404**

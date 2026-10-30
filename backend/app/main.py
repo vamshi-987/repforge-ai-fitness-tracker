@@ -10,7 +10,18 @@ from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.db.session import dispose_engine
-from app.routers import auth, exercises, health, me, routines, stats, sync, workouts
+from app.routers import (
+    auth,
+    body,
+    exercises,
+    health,
+    me,
+    routines,
+    stats,
+    sync,
+    uploads,
+    workouts,
+)
 
 API_PREFIX = "/v1"
 
@@ -55,6 +66,8 @@ def create_app() -> FastAPI:
     app.include_router(workouts.router, prefix=API_PREFIX)
     app.include_router(sync.router, prefix=API_PREFIX)
     app.include_router(stats.router, prefix=API_PREFIX)
+    app.include_router(body.router, prefix=API_PREFIX)
+    app.include_router(uploads.router, prefix=API_PREFIX)
     return app
 
 
