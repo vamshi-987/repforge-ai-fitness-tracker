@@ -8,7 +8,10 @@ import { resetLibrarySyncForTests } from '@/exercises/library';
 import type { LibraryRepo } from '@/exercises/repo';
 import { resetAuthStoreForTests, useAuth } from '@/stores/auth';
 import { BENCH, EQUIPMENT, EXERCISES, MUSCLES, makeExercise } from '@/test/library';
+import { makeSet, makeWorkoutExercise } from '@/test/workouts';
+import type { ExerciseStats } from '@/api/types';
 import type { OutboxItem, OutboxRepo } from '@/sync/outbox';
+import type { HistoryRepo } from '@/workout/history';
 import { jsonResponse, makeMe, tokenPair } from '@/test/helpers';
 
 import ExerciseDetailScreen from '../../app/exercise/[id]';
@@ -25,6 +28,11 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
   Stack: { Screen: () => null },
 }));
+jest.mock('@/workout/sqliteHistory', () => {
+  const { createMemoryHistoryRepo } =
+    jest.requireActual<typeof import('@/workout/history')>('@/workout/history');
+  return { sqliteHistoryRepo: createMemoryHistoryRepo() };
+});
 jest.mock('expo-video', () => ({ useVideoPlayer: jest.fn(), VideoView: () => null }));
 
 const repo = jest.requireMock<{ sqliteLibraryRepo: LibraryRepo }>(
@@ -35,6 +43,9 @@ const expoRouter = jest.requireMock<{
   router: { push: jest.Mock; replace: jest.Mock; back: jest.Mock };
 }>('expo-router');
 
+const history = jest.requireMock<{ sqliteHistoryRepo: HistoryRepo }>(
+  '@/workout/sqliteHistory',
+).sqliteHistoryRepo;
 const outbox = jest.requireMock<{ sqliteOutbox: OutboxRepo & { items: OutboxItem[] } }>(
   '@/sync/sqliteOutbox',
 ).sqliteOutbox;
@@ -144,7 +155,7 @@ describe('Exercise detail', () => {
     expect(screen.queryByLabelText('Delete')).toBeNull();
 
     await fireEvent.press(screen.getByLabelText('Section: History'));
-    expect(screen.getByText(/appear here once you log workouts/)).toBeOnTheScreen();
+    expect(await screen.findByText(/appear here once you log workouts/)).toBeOnTheScreen();
   });
 
   it('duplicates into a custom exercise and opens it for editing, offline', async () => {
@@ -273,5 +284,113 @@ describe('Custom exercise form', () => {
     await show(<ExerciseFormScreen />);
 
     expect(await screen.findByText('Only your own exercises can be edited.')).toBeOnTheScreen();
+  });
+});
+
+describe('Exercise history and charts', () => {
+  const STATS: ExerciseStats = {
+    exercise_id: BENCH.id,
+    range: '3m',
+    points: [
+      {
+        workout_id: 'w1',
+        started_at: '2026-10-01T17:00:00Z',
+        heaviest_kg: 100,
+        e1rm_kg: 116.67,
+        e1rm_low_accuracy: false,
+        best_set_volume_kg: 500,
+        session_volume_kg: 1000,
+        total_reps: 10,
+      },
+      {
+        workout_id: 'w2',
+        started_at: '2026-10-08T17:00:00Z',
+        heaviest_kg: 105,
+        e1rm_kg: 120,
+        e1rm_low_accuracy: false,
+        best_set_volume_kg: 525,
+        session_volume_kg: 1050,
+        total_reps: 10,
+      },
+    ],
+    records: [
+      {
+        record_type: 'heaviest',
+        value: 105,
+        workout_id: 'w2',
+        achieved_at: '2026-10-08T18:00:00Z',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    await history.clear();
+    expoRouter.useLocalSearchParams.mockReturnValue({ id: BENCH.id });
+  });
+
+  it("lists this exercise's sessions from the device, offline", async () => {
+    offline();
+    await history.save(
+      {
+        id: 'w1',
+        routineId: null,
+        title: 'Push Day',
+        notes: '',
+        startedAt: Date.UTC(2026, 9, 1, 17),
+        endedAt: Date.UTC(2026, 9, 1, 18),
+        visibility: 'public',
+        volumeKg: 800,
+        setCount: 2,
+        exercises: [
+          makeWorkoutExercise({
+            exerciseId: BENCH.id,
+            sets: [
+              makeSet({ weightKg: 100, reps: 5, completed: true }),
+              makeSet({ weightKg: 100, reps: 3, rpe: 9, completed: true }),
+            ],
+          }),
+        ],
+      },
+      { muscleSets: {}, records: [] },
+    );
+    await show(<ExerciseDetailScreen />);
+
+    await fireEvent.press(await screen.findByLabelText('Section: History'));
+
+    expect(await screen.findByText('Push Day')).toBeOnTheScreen();
+    expect(screen.getByText(/100 kg × 3 @9/)).toBeOnTheScreen();
+  });
+
+  it('charts progress and shows the records', async () => {
+    const fetchMock = jest.fn(async () => jsonResponse(200, STATS));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    await show(<ExerciseDetailScreen />);
+
+    await fireEvent.press(await screen.findByLabelText('Section: Charts'));
+
+    expect(
+      await screen.findByLabelText(
+        'Heaviest weight over 2 sessions: from 100 kg to 105 kg, best 105 kg',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(/Heaviest weight: 105 kg/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByLabelText('Total reps'));
+    expect(
+      screen.getByLabelText('Total reps over 2 sessions: from 10 reps to 10 reps, best 10 reps'),
+    ).toBeOnTheScreen();
+    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toContain(
+      `/exercises/${BENCH.id}/stats?range=3m`,
+    );
+  });
+
+  it('keeps long ranges for Pro and explains charts offline', async () => {
+    const fetchMock = offline();
+    await show(<ExerciseDetailScreen />);
+    await fireEvent.press(await screen.findByLabelText('Section: Charts'));
+
+    expect(await screen.findByText(/Charts need a connection/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByLabelText('Chart range: 1 year 🔒'));
+    expect(screen.getByText(/part of RepForge Pro/)).toBeOnTheScreen();
+    expect(fetchMock.mock.calls.every((c) => !String(c[0]).includes('range=1y'))).toBe(true);
   });
 });

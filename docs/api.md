@@ -293,6 +293,36 @@ The copy keeps the type, equipment, muscles, instructions and media.
 
 **201** exercise object · **404** · **409** `exercise_exists` · **422**
 
+### `GET /v1/exercises/{id}/history`
+`?cursor=&limit=` (limit 1–50, default 20). The caller's sessions of this exercise, newest first: one item per workout (an exercise done twice in a workout is merged, sets in order).
+```json
+{"items": [{"workout_id": "…", "workout_title": "Push Day", "started_at": "2026-10-27T17:00:00Z",
+            "sets": [ /* workout set objects (docs § Workouts) */ ]}],
+ "next_cursor": null}
+```
+Works for library exercises and the caller's custom ones, deleted ones included.
+
+**200** · **404** (unknown, or another user's custom exercise) · **422** `invalid_cursor`
+
+### `GET /v1/exercises/{id}/stats`
+`?range=1m|3m|1y|all` (default `3m`). One point per session in the range, oldest first, and the all-time records.
+```json
+{
+  "exercise_id": "…", "range": "3m",
+  "points": [
+    {"workout_id": "…", "started_at": "…", "heaviest_kg": 105.0, "e1rm_kg": 120.33,
+     "e1rm_low_accuracy": false, "best_set_volume_kg": 760.0, "session_volume_kg": 1075.0,
+     "total_reps": 11}
+  ],
+  "records": [{"record_type": "heaviest", "value": 140.0, "workout_id": "…", "achieved_at": "…"}]
+}
+```
+- Points use the same rules as personal records: warm-ups never count; `e1rm_kg` (Epley) only for plain loads, with `e1rm_low_accuracy: true` when the best estimate came from a set of more than 12 reps; `total_reps` only for exercises done for reps. A value that doesn't apply is `null`.
+- `records`: the current best of each record type, whatever the range.
+- **Pro:** `1y` and `all` need Pro (PLAN.md G5); free accounts get **403** `pro_required` (`details: {"feature": "…"}`).
+
+**200** · **403** `pro_required` · **404** · **422** (unknown range)
+
 ### `GET /v1/muscles`
 **200**
 ```json

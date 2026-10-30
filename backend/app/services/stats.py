@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from app.db.models import ExerciseType, SetType
+from app.db.models import ExerciseType, RecordType, SetType
 from app.services.profile import round_half_up
-from app.services.records import load_kind
+from app.services.records import SetPerf, counts_reps, exercise_bests, load_kind
 
 logger = logging.getLogger(__name__)
 
@@ -94,3 +94,41 @@ async def bump_generation(redis: Redis, user_id: uuid.UUID) -> None:
         logger.warning(
             "cache_unavailable", extra={"key": generation_key(user_id), "error": repr(exc)}
         )
+
+
+# --- per-session points for exercise charts ------------------------------------------------
+
+# e1RM from more reps than this is too rough to trust (mobile `src/lib/e1rm.ts`).
+E1RM_MAX_ACCURATE_REPS = 12
+
+
+@dataclass(frozen=True)
+class SessionPoint:
+    heaviest_kg: float | None
+    e1rm_kg: float | None
+    e1rm_low_accuracy: bool
+    best_set_volume_kg: float | None
+    session_volume_kg: float | None
+    total_reps: int | None
+
+
+def session_point(exercise_type: ExerciseType, sets: Sequence[SetPerf]) -> SessionPoint:
+    """One session's chart values, from the same bests as personal records (warm-ups never
+    count). Total reps is only for exercises done for reps."""
+    bests = exercise_bests(exercise_type, sets)
+
+    def value(kind: RecordType) -> float | None:
+        best = bests.get(kind)
+        return None if best is None else best.value
+
+    e1rm = bests.get(RecordType.E1RM)
+    e1rm_reps = next((s.reps or 0 for s in sets if e1rm and s.id == e1rm.set_id), 0)
+    reps = sum(s.reps or 0 for s in sets if s.completed and s.set_type != SetType.WARMUP)
+    return SessionPoint(
+        heaviest_kg=value(RecordType.HEAVIEST),
+        e1rm_kg=value(RecordType.E1RM),
+        e1rm_low_accuracy=e1rm_reps > E1RM_MAX_ACCURATE_REPS,
+        best_set_volume_kg=value(RecordType.BEST_SET_VOLUME),
+        session_volume_kg=value(RecordType.SESSION_VOLUME),
+        total_reps=reps if counts_reps(exercise_type) else None,
+    )

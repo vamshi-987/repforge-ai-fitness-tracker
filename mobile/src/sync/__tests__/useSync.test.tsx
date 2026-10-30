@@ -184,6 +184,7 @@ describe('useSyncEngine', () => {
       ['routines'],
       ['previous-sets'],
       ['workout-history'],
+      ['exercise-stats'],
     ]);
   });
 });

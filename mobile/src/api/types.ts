@@ -335,3 +335,33 @@ export interface SyncPull {
   cursor: number;
   has_more: boolean;
 }
+
+// --- stats (docs/api.md § Exercises, § Stats) ---------------------------------------------
+
+/** How far back charts look; 1y and all need Pro. */
+export type StatsRange = '1m' | '3m' | '1y' | 'all';
+
+export interface ExercisePoint {
+  workout_id: string;
+  started_at: string;
+  heaviest_kg: number | null;
+  e1rm_kg: number | null;
+  e1rm_low_accuracy: boolean;
+  best_set_volume_kg: number | null;
+  session_volume_kg: number | null;
+  total_reps: number | null;
+}
+
+export interface ExerciseRecord {
+  record_type: RecordType;
+  value: number;
+  workout_id: string;
+  achieved_at: string;
+}
+
+export interface ExerciseStats {
+  exercise_id: string;
+  range: StatsRange;
+  points: ExercisePoint[];
+  records: ExerciseRecord[];
+}
