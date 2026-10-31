@@ -20,6 +20,7 @@ from app.routers import (
     stats,
     sync,
     uploads,
+    water,
     workouts,
 )
 
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
     app.include_router(stats.router, prefix=API_PREFIX)
     app.include_router(body.router, prefix=API_PREFIX)
     app.include_router(uploads.router, prefix=API_PREFIX)
+    app.include_router(water.router, prefix=API_PREFIX)
     return app
 
 

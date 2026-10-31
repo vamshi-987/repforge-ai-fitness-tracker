@@ -33,6 +33,7 @@ from app.db.models.user import (
     UserSettings,
     WeightUnit,
 )
+from app.db.models.water import WaterLog
 from app.db.models.workout import (
     PersonalRecord,
     RecordType,
@@ -72,6 +73,7 @@ __all__ = [
     "User",
     "UserProfile",
     "UserSettings",
+    "WaterLog",
     "WeightSource",
     "WeightUnit",
     "Workout",
