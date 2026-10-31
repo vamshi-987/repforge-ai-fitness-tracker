@@ -239,3 +239,16 @@ export const bodyMeasurements = sqliteTable(
   },
   (t) => [index('body_measurements_measured_at_idx').on(t.measuredAt)],
 );
+
+// --- water (synced as water_log) -----------------------------------------------------------
+
+export const waterLogs = sqliteTable(
+  'water_logs',
+  {
+    id: text('id').primaryKey(),
+    loggedAt: integer('logged_at').notNull(),
+    amountMl: integer('amount_ml').notNull(),
+    version: integer('version').notNull(),
+  },
+  (t) => [index('water_logs_logged_at_idx').on(t.loggedAt)],
+);

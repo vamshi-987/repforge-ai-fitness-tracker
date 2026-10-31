@@ -82,6 +82,7 @@ export default function RootLayout() {
             <Stack.Screen name="body/index" options={{ ...header, title: 'Body weight' }} />
             <Stack.Screen name="body/measurements" options={{ ...header, title: 'Measurements' }} />
             <Stack.Screen name="body/photos" options={{ ...header, title: 'Progress photos' }} />
+            <Stack.Screen name="water" options={{ ...header, title: 'Water' }} />
             <Stack.Screen name="tools/index" options={{ ...header, title: 'Tools' }} />
             <Stack.Screen name="tools/plates" options={{ ...header, title: 'Plate calculator' }} />
             <Stack.Screen

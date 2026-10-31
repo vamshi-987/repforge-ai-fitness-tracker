@@ -10,6 +10,8 @@ import { LIBRARY_QUERY_KEY, libraryRepo } from '@/exercises/library';
 import { EXERCISE_STATS_KEY } from '@/exercises/stats';
 import { ROUTINES_QUERY_KEY, routineRepo } from '@/routines/store';
 import { STATS_KEY } from '@/stats/dashboard';
+import { syncWaterReminders } from '@/water/actions';
+import { WATER_QUERY_KEY, waterRepo } from '@/water/store';
 import { HISTORY_QUERY_KEY, historyRepo, PREVIOUS_SETS_KEY } from '@/workout/historyStore';
 
 import { workoutChange } from './changes';
@@ -32,6 +34,7 @@ export const syncEngine = new SyncEngine({
     routines: routineRepo,
     history: historyRepo,
     body: bodyRepo,
+    water: waterRepo,
   }),
   cursor: sqliteCursor,
 });
@@ -44,6 +47,7 @@ export const ENTITY_QUERIES: Record<SyncEntity, readonly (readonly unknown[])[]>
   workout: [[PREVIOUS_SETS_KEY], HISTORY_QUERY_KEY, [EXERCISE_STATS_KEY], [STATS_KEY]],
   body_weight: [BODY_QUERY_KEY],
   body_measurement: [BODY_QUERY_KEY],
+  water_log: [WATER_QUERY_KEY],
 };
 
 /** Workouts finished before sync existed (or whose queue entry was lost) go out too. */
@@ -61,6 +65,7 @@ export async function forgetSyncState(): Promise<void> {
   await sqliteCursor.clear();
   await historyRepo.clear();
   await bodyRepo.clear();
+  await waterRepo.clear();
 }
 
 function showNotices(notices: SyncNotice[]): void {
@@ -90,6 +95,8 @@ export function useSyncEngine(): void {
     const stopChanged = syncEngine.onChanged((entities) => {
       const keys = new Set([...entities].flatMap((entity) => ENTITY_QUERIES[entity]));
       for (const queryKey of keys) void queryClient.invalidateQueries({ queryKey });
+      // Drinks or workouts from another device change today's total or goal.
+      if (entities.has('water_log') || entities.has('workout')) void syncWaterReminders();
     });
     const stopNotices = syncEngine.onNotice(showNotices);
     const stopQueue = onQueued(soon);

@@ -158,6 +158,36 @@ export default function SettingsScreen() {
           </Row>
         </Section>
 
+        <Section title="Water">
+          <Row
+            label="Water reminders"
+            hint={`Every few hours between ${settings.wake_time.slice(0, 5)} and ${settings.sleep_time.slice(0, 5)}, until you reach the day's goal.`}
+          >
+            <Switch
+              accessibilityLabel="Water reminders"
+              value={settings.reminders_enabled}
+              onValueChange={(reminders_enabled) => setSetting({ reminders_enabled })}
+              trackColor={{ true: colors.primary, false: colors.border }}
+            />
+          </Row>
+          {settings.reminders_enabled ? (
+            <Row label="Remind every">
+              <Stepper
+                label="Remind every"
+                display={`${settings.water_reminder_every_h} h`}
+                onDecrement={() =>
+                  setSetting({ water_reminder_every_h: settings.water_reminder_every_h - 1 })
+                }
+                onIncrement={() =>
+                  setSetting({ water_reminder_every_h: settings.water_reminder_every_h + 1 })
+                }
+                canDecrement={settings.water_reminder_every_h > 1}
+                canIncrement={settings.water_reminder_every_h < 12}
+              />
+            </Row>
+          ) : null}
+        </Section>
+
         <Section title="Account">
           <Row label={me.display_name} hint={`@${me.username} · ${me.email}`} />
           <Button label="Log out" variant="secondary" onPress={() => void logOut()} />

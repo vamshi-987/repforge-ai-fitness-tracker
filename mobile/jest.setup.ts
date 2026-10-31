@@ -55,6 +55,12 @@ jest.mock('@/body/sqliteRepo', () => {
   return { sqliteBodyRepo: createMemoryBodyRepo() };
 });
 
+jest.mock('@/water/sqliteRepo', () => {
+  const { createMemoryWaterRepo } =
+    jest.requireActual<typeof import('@/water/repo')>('@/water/repo');
+  return { sqliteWaterRepo: createMemoryWaterRepo() };
+});
+
 jest.mock('@react-native-community/netinfo', () =>
   jest.requireActual('@react-native-community/netinfo/jest/netinfo-mock.js'),
 );

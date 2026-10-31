@@ -35,7 +35,9 @@ function signIn(units: { unit_weight: 'kg' | 'lb'; unit_length: 'cm' | 'in' }) {
 }
 
 async function show(ui: ReactElement) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+  });
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 

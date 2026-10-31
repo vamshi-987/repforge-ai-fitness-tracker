@@ -11,10 +11,17 @@ import {
 } from 'expo-notifications';
 import { Platform } from 'react-native';
 
-export const CHANNELS = { workout: 'workout-in-progress', rest: 'rest-timer' } as const;
+export const CHANNELS = {
+  workout: 'workout-in-progress',
+  rest: 'rest-timer',
+  water: 'water-reminders',
+} as const;
 
 export const ONGOING_NOTIFICATION_ID = 'workout-in-progress';
 export const REST_NOTIFICATION_ID = 'rest-timer';
+/** Water reminders use ids `water-reminder-0` … `water-reminder-<MAX - 1>`. */
+export const WATER_REMINDER_PREFIX = 'water-reminder-';
+export const MAX_WATER_REMINDERS = 16;
 
 const quiet = { shouldPlaySound: false, shouldSetBadge: false };
 
@@ -61,6 +68,10 @@ function ensureChannels(): Promise<void> {
       name: 'Rest timer',
       importance: AndroidImportance.HIGH,
       vibrationPattern: [0, 300, 200, 300],
+    }),
+    Notifications.setNotificationChannelAsync(CHANNELS.water, {
+      name: 'Water reminders',
+      importance: AndroidImportance.DEFAULT,
     }),
   ]).then(() => undefined);
   return channels;
@@ -135,4 +146,28 @@ export async function cancelRestEnd(): Promise<void> {
     // Nothing scheduled.
   }
   await dismiss(REST_NOTIFICATION_ID);
+}
+
+/**
+ * Replace every pending water reminder with ones at `times` (epoch ms, at most
+ * MAX_WATER_REMINDERS). An empty list just cancels them. Local notifications, so they fire
+ * offline and need no server push (PLAN.md deviation 1).
+ */
+export async function replaceWaterReminders(times: number[], body: string): Promise<void> {
+  try {
+    for (let i = 0; i < MAX_WATER_REMINDERS; i += 1)
+      await Notifications.cancelScheduledNotificationAsync(`${WATER_REMINDER_PREFIX}${i}`);
+    if (times.length === 0) return;
+    await ensureChannels();
+    if (!(await ensurePermission())) return;
+    for (const [i, date] of times.slice(0, MAX_WATER_REMINDERS).entries()) {
+      await Notifications.scheduleNotificationAsync({
+        identifier: `${WATER_REMINDER_PREFIX}${i}`,
+        content: { title: 'Time for some water', body, sound: 'default' },
+        trigger: { type: SchedulableTriggerInputTypes.DATE, date, channelId: CHANNELS.water },
+      });
+    }
+  } catch {
+    // Reminders are a convenience; logging water works without them.
+  }
 }
