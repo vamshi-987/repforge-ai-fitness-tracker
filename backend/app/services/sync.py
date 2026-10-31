@@ -35,6 +35,7 @@ from app.db.models import (
     Routine,
     RoutineFolder,
     User,
+    WaterLog,
     Workout,
 )
 from app.schemas.body import MeasurementIn, MeasurementOut, WeightIn, WeightOut
@@ -54,10 +55,12 @@ from app.schemas.sync import (
     SyncResult,
     SyncStatus,
 )
+from app.schemas.water import WaterIn, WaterLogOut
 from app.schemas.workouts import WorkoutPut
 from app.services import body as body_service
 from app.services import exercises as exercise_service
 from app.services import routines as routine_service
+from app.services import water as water_service
 from app.services import workouts as workout_service
 
 Json = dict[str, Any]
@@ -205,6 +208,22 @@ async def _measurements_out(_: AsyncSession, rows: Sequence[Any]) -> list[Json]:
     return [MeasurementOut.model_validate(row).model_dump(mode="json") for row in rows]
 
 
+async def _water_upsert(ctx: Context, log_id: uuid.UUID, data: Json) -> Json:
+    body = WaterIn.model_validate(data)
+    out = await water_service.put_water(
+        ctx.session, ctx.user, log_id, body.amount_ml, body.logged_at or ctx.now, ctx.now
+    )
+    return out.model_dump(mode="json")
+
+
+async def _water_delete(ctx: Context, log_id: uuid.UUID) -> None:
+    await water_service.delete_water(ctx.session, ctx.user, log_id, ctx.now)
+
+
+async def _water_out(_: AsyncSession, rows: Sequence[Any]) -> list[Json]:
+    return [WaterLogOut.model_validate(row).model_dump(mode="json") for row in rows]
+
+
 KINDS: dict[SyncEntity, Kind] = {
     SyncEntity.EXERCISE: Kind(
         Exercise,
@@ -243,6 +262,9 @@ KINDS: dict[SyncEntity, Kind] = {
         _measurements_out,
         _measurement_upsert,
         _measurement_delete,
+    ),
+    SyncEntity.WATER_LOG: Kind(
+        WaterLog, WaterLog.user_id, (), _water_out, _water_upsert, _water_delete
     ),
 }
 

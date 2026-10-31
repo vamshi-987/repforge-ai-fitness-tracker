@@ -22,6 +22,7 @@ class SyncEntity(StrEnum):
     WORKOUT = "workout"
     BODY_WEIGHT = "body_weight"
     BODY_MEASUREMENT = "body_measurement"
+    WATER_LOG = "water_log"
 
 
 class SyncOp(StrEnum):

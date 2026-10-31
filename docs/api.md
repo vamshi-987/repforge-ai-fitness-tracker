@@ -563,7 +563,7 @@ Soft delete (other devices pull the removal). Records of its exercises are recom
 
 The app works offline: it writes to its own database first and queues each change in an **outbox**. When it can, it pushes the outbox, then pulls everything that changed since its last pull. Both endpoints need `Authorization: Bearer <access_token>`.
 
-Synced entities, in the order the app sends them: `exercise` (custom exercises), `routine_folder`, `routine`, `workout`, `body_weight`, `body_measurement`. Every row is identified by a client-generated UUID.
+Synced entities, in the order the app sends them: `exercise` (custom exercises), `routine_folder`, `routine`, `workout`, `body_weight`, `body_measurement`, `water_log`. Every row is identified by a client-generated UUID.
 
 ### `POST /v1/sync/push`
 ```json
@@ -584,7 +584,7 @@ Synced entities, in the order the app sends them: `exercise` (custom exercises),
 }
 ```
 - Up to 100 changes, applied **in order**, each on its own: one rejected change doesn't stop the others.
-- `data` is the row's **full state** (required for `upsert`, omitted for `delete`): the custom exercise body of `POST /exercises`, `{"name", "position"}` for a folder, the routine body with its `position`, the `PUT /workouts/{id}` body, or the `POST /body/weights` / `POST /body/measurements` body without `id`. The same rules apply as on those endpoints (free routine limit, immutable exercise type, the workout 24-hour rule).
+- `data` is the row's **full state** (required for `upsert`, omitted for `delete`): the custom exercise body of `POST /exercises`, `{"name", "position"}` for a folder, the routine body with its `position`, the `PUT /workouts/{id}` body, the `POST /body/weights` / `POST /body/measurements` / `POST /water` body without `id`. The same rules apply as on those endpoints (free routine limit, immutable exercise type, the workout 24-hour rule).
 - A routine whose `folder_id` is unknown or deleted is saved without a folder rather than refused.
 - `base_version`: the server `version` the edit started from (`null` for a row the device created). `updated_at`: when the edit was made on the device.
 - **Conflicts:** if the server's `version` is newer than `base_version`, two devices edited the row. The later edit by `updated_at` wins (last write wins); a losing edit is answered `stale`. Deletes win over edits: an upsert of a deleted row is `rejected` with `<entity>_deleted`.
@@ -734,3 +734,34 @@ PUT the file's bytes to `upload_url` with `headers` before `expires_at` (15 minu
 
 ### `DELETE /v1/body/photos/{id}`
 Soft delete. **204** · **404**
+
+---
+
+## Water
+
+All endpoints need `Authorization: Bearer <access_token>`. Drinks take an optional client UUID and sync as `water_log`. A drink counts for the user's **local date** of `logged_at` (`/me/profile` `timezone`).
+
+**Daily goal** (CLAUDE.md §4.2 C): 35 ml per kg of the latest weigh-in, rounded to 50 ml (2500 ml without a weigh-in), plus **500 ml on a day with a workout**. A goal set in `/me/profile` `water_goal_ml` replaces the 35 ml/kg base; the training-day 500 ml still applies.
+
+### `POST /v1/water`
+`{"id": "optional UUID", "amount_ml": 250, "logged_at": "optional, defaults to now"}`. `amount_ml` 1–5000; `logged_at` not more than 5 minutes in the future.
+
+**201** `{"id", "logged_at", "amount_ml", "version", "created_at", "updated_at"}` · **409** `water_log_exists` · **422**
+
+### `DELETE /v1/water/{id}`
+Soft delete (the app's undo). **204** · **404**
+
+### `GET /v1/water`
+`?date=YYYY-MM-DD` (default: today in the user's timezone).
+```json
+{"date": "2026-10-30", "goal_ml": 3300, "total_ml": 1250, "trained": true,
+ "logs": [{"id": "…", "logged_at": "…", "amount_ml": 250, "version": 1, "created_at": "…", "updated_at": "…"}]}
+```
+`logs` oldest first. **200** · **422** (`["query", "date"]`)
+
+### `GET /v1/water/history`
+`?range=1m|3m|1y|all` (default `1m`; for `all`, from the first drink). Every day of the range, oldest first, empty days included:
+```json
+{"days": [{"date": "2026-10-29", "total_ml": 2400, "goal_ml": 2800}]}
+```
+Each day's goal uses the current weight and custom goal (the past isn't re-weighed) and that day's workouts.

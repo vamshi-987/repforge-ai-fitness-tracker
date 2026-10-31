@@ -91,12 +91,14 @@ async def _owned[Row: (BodyWeight, BodyMeasurement, ProgressPhoto)](
     return row
 
 
-async def _id_free(session: AsyncSession, model: Any, row_id: uuid.UUID | None, code: str) -> None:
+async def ensure_id_free(
+    session: AsyncSession, model: Any, row_id: uuid.UUID | None, code: str
+) -> None:
     if row_id is not None and await session.get(model, row_id) is not None:
         raise ConflictError(code, "This id is already used")
 
 
-async def _commit_new(session: AsyncSession, code: str) -> None:
+async def commit_new(session: AsyncSession, code: str) -> None:
     try:
         await session.commit()
     except IntegrityError as exc:
@@ -134,7 +136,7 @@ async def put_weight(
     if row is None:
         row = BodyWeight(id=weight_id, user_id=user.id, **fields)
         session.add(row)
-        await _commit_new(session, "weight_exists")
+        await commit_new(session, "weight_exists")
     elif _apply(row, fields):
         await session.commit()
     return WeightOut.model_validate(row)
@@ -143,7 +145,7 @@ async def put_weight(
 async def create_weight(
     session: AsyncSession, user: User, body: WeightIn, now: datetime
 ) -> WeightOut:
-    await _id_free(session, BodyWeight, body.id, "weight_exists")
+    await ensure_id_free(session, BodyWeight, body.id, "weight_exists")
     return await put_weight(session, user, body.id or uuid.uuid4(), body, now)
 
 
@@ -206,7 +208,7 @@ async def put_measurement(
     if row is None:
         row = BodyMeasurement(id=measurement_id, user_id=user.id, **fields)
         session.add(row)
-        await _commit_new(session, "measurement_exists")
+        await commit_new(session, "measurement_exists")
     elif _apply(row, fields):
         await session.commit()
     return MeasurementOut.model_validate(row)
@@ -215,7 +217,7 @@ async def put_measurement(
 async def create_measurement(
     session: AsyncSession, user: User, body: MeasurementIn, now: datetime
 ) -> MeasurementOut:
-    await _id_free(session, BodyMeasurement, body.id, "measurement_exists")
+    await ensure_id_free(session, BodyMeasurement, body.id, "measurement_exists")
     return await put_measurement(session, user, body.id or uuid.uuid4(), body, now)
 
 
@@ -296,7 +298,7 @@ async def create_photo(
     if not body.object_key.startswith(user_prefix(user.id)) or not PHOTO_KEY.match(body.object_key):
         raise field_error("object_key", "not an upload of yours")
     _not_future(body.taken_at, now, "taken_at")
-    await _id_free(session, ProgressPhoto, body.id, "photo_exists")
+    await ensure_id_free(session, ProgressPhoto, body.id, "photo_exists")
     photo = ProgressPhoto(
         id=body.id or uuid.uuid4(),
         user_id=user.id,
@@ -305,7 +307,7 @@ async def create_photo(
         pose=body.pose,
     )
     session.add(photo)
-    await _commit_new(session, "photo_exists")
+    await commit_new(session, "photo_exists")
     return photo_out(settings, photo, now)
 
 
