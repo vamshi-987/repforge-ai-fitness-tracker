@@ -6,6 +6,7 @@ import type {
   Routine,
   RoutineFolder,
   SyncEntity,
+  WaterLog,
 } from '@/api/types';
 import type { SavedWorkout } from '@/workout/history';
 import { toWorkoutPut } from '@/workout/serverWorkout';
@@ -97,6 +98,16 @@ export function measurementChange(measurement: BodyMeasurement): QueuedChange {
       kind: measurement.kind,
       value: measurement.value,
     },
+  };
+}
+
+export function waterChange(log: WaterLog): QueuedChange {
+  return {
+    entity: 'water_log',
+    entityId: log.id,
+    op: 'upsert',
+    baseVersion: baseVersion(log.version),
+    data: { logged_at: log.logged_at, amount_ml: log.amount_ml },
   };
 }
 

@@ -6,6 +6,7 @@ import { Text, type ColorValue } from 'react-native';
 import { MiniWorkoutBar } from '@/components/workout/MiniWorkoutBar';
 import { useLibrarySync } from '@/exercises/library';
 import { useSyncEngine } from '@/sync/useSync';
+import { useWaterReminders } from '@/water/useWaterReminders';
 import { useTheme } from '@/theme/useTheme';
 import { useActiveWorkoutBoot } from '@/workout/useActiveWorkoutBoot';
 import { useOngoingNotification } from '@/workout/useOngoingNotification';
@@ -23,6 +24,7 @@ export default function TabsLayout() {
   useLibrarySync();
   // Push queued changes and pull the server's (routines, custom exercises, workouts).
   useSyncEngine();
+  useWaterReminders();
   useActiveWorkoutBoot();
   useResumePrompt();
   useOngoingNotification();

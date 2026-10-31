@@ -57,6 +57,13 @@
       "when": 1793362196726,
       "tag": "0007_fixed_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793421663058,
+      "tag": "0008_secret_multiple_man",
+      "breakpoints": true
     }
   ]
 }

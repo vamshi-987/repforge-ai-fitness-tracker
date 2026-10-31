@@ -298,7 +298,13 @@ export interface WorkoutPut {
 // --- sync (docs/api.md § Sync) ------------------------------------------------------------
 
 export type SyncEntity =
-  'exercise' | 'routine_folder' | 'routine' | 'workout' | 'body_weight' | 'body_measurement';
+  | 'exercise'
+  | 'routine_folder'
+  | 'routine'
+  | 'workout'
+  | 'body_weight'
+  | 'body_measurement'
+  | 'water_log';
 export type SyncOp = 'upsert' | 'delete';
 
 export interface SyncChange {
@@ -456,4 +462,15 @@ export interface Upload {
   method: 'PUT';
   headers: Record<string, string>;
   expires_at: string;
+}
+
+// --- water (docs/api.md § Water) ----------------------------------------------------------
+
+export interface WaterLog {
+  id: string;
+  logged_at: string;
+  amount_ml: number;
+  version: number;
+  created_at: string;
+  updated_at: string;
 }

@@ -2,6 +2,7 @@ import type { BodyMeasurement, BodyWeight } from '@/api/types';
 import { createMemoryBodyRepo } from '@/body/repo';
 import { createMemoryRepo } from '@/exercises/repo';
 import { createMemoryRoutineRepo } from '@/routines/repo';
+import { createMemoryWaterRepo } from '@/water/repo';
 import { createMemoryHistoryRepo } from '@/workout/history';
 
 import { measurementChange, weightChange } from '../changes';
@@ -49,6 +50,7 @@ describe('body sync', () => {
       routines: createMemoryRoutineRepo(),
       history: createMemoryHistoryRepo(),
       body,
+      water: createMemoryWaterRepo(),
     });
 
     await local.apply('body_weight', 'w', WEIGHT);

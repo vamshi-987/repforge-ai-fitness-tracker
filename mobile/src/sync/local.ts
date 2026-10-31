@@ -4,11 +4,13 @@ import type {
   Exercise,
   Routine,
   RoutineFolder,
+  WaterLog,
   Workout,
 } from '@/api/types';
 import type { BodyRepo } from '@/body/repo';
 import type { LibraryRepo } from '@/exercises/repo';
 import type { RoutineRepo } from '@/routines/repo';
+import type { WaterRepo } from '@/water/repo';
 import type { HistoryRepo } from '@/workout/history';
 
 import type { LocalStore } from './engine';
@@ -19,6 +21,7 @@ export function createLocalStore(repos: {
   routines: RoutineRepo;
   history: HistoryRepo;
   body: BodyRepo;
+  water: WaterRepo;
 }): LocalStore {
   return {
     async apply(entity, id, data) {
@@ -43,6 +46,8 @@ export function createLocalStore(repos: {
           return data
             ? repos.body.putMeasurement(data as BodyMeasurement)
             : repos.body.removeMeasurement(id);
+        case 'water_log':
+          return data ? repos.water.put(data as WaterLog) : repos.water.remove(id);
       }
     },
   };

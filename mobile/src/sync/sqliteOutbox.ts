@@ -76,8 +76,8 @@ export const sqliteOutbox: OutboxRepo = {
 
 // Bumped whenever the app starts syncing a new entity, so a phone that already synced pulls
 // once from 0 and receives the rows of the new entities that predate its cursor
-// (v2: body weights and measurements).
-const CURSOR_KEY = 'sync:cursor:v2';
+// (v2: body weights and measurements; v3: water).
+const CURSOR_KEY = 'sync:cursor:v3';
 
 export const sqliteCursor: CursorStore = {
   async get() {
