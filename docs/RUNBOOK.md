@@ -105,7 +105,8 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 | `backend/seeds/*.json` (exercise library) | `make seed` | Upserts the library; unchanged rows are not touched, removed exercises are archived. A seed that changes an existing exercise's `type` is refused |
 | `infra/postgres/init/*.sql` | `make nuke && make up && make migrate` ⚠️ wipes data | Init scripts run only on a fresh volume |
 | `infra/seaweedfs/s3.json` | `docker compose restart s3` | The config is read at startup |
-| `mobile/package.json` / `pnpm-lock.yaml` | `make mobile-install`, then restart `make mobile-start` | New JS packages (Phase 1 added `expo-secure-store`, `expo-localization`; Phase 2 added `react-native-svg`, `react-native-body-highlighter`, `expo-video`; Phase 3 added `expo-crypto`, `expo-notifications`, `expo-keep-awake`, `expo-haptics`; Phase 4 added `@react-native-community/netinfo`) |
+| A new bucket in `docker-compose.yml` `s3-init` (Phase 5: `progress-photos`) | `docker compose up -d s3-init` (or `make up`) | The init job creates missing buckets and exits |
+| `mobile/package.json` / `pnpm-lock.yaml` | `make mobile-install`, then restart `make mobile-start` | New JS packages (Phase 1 added `expo-secure-store`, `expo-localization`; Phase 2 added `react-native-svg`, `react-native-body-highlighter`, `expo-video`; Phase 3 added `expo-crypto`, `expo-notifications`, `expo-keep-awake`, `expo-haptics`; Phase 4 added `@react-native-community/netinfo`; Phase 5 added `expo-image-picker`) |
 | `.env.example` gained variables (Phase 1: `JWT_SECRET`, `GOOGLE_CLIENT_IDS`, `APPLE_CLIENT_IDS`, `LOGIN_RATE_*`; Phase 3: `FREE_ROUTINE_LIMIT`) | Copy the new lines into `.env` if you want non-default values, then `make up` | Defaults work for dev; `make up` recreates containers with the new env |
 | `mobile/src/db/schema.ts` (local SQLite tables) | `cd mobile && pnpm db:generate` and commit the new files in `src/db/migrations/` | The app runs these on launch |
 | `mobile/app.json`, `babel.config.js`, `metro.config.js` | `cd mobile && pnpm start --clear` | Clears Metro's cache |
@@ -123,6 +124,7 @@ After `git pull` or switching branches, use section 3 to decide what else to run
 - Phase 2 added the offline exercise library (`muscles`, `equipment`, `exercises`). The app downloads it the first time it opens online after sign-in (Workout → Exercise library shows "Downloading…"), then only revalidates. Run `make seed` first, or the server has no library to send.
 - Phase 3 added `routines` and `routine_folders` (a mirror of the server's routines, refreshed when the Workout tab opens or is pulled down), `active_workout` (the workout being logged, saved 300 ms after each change), and the local history: `workouts`, `workout_exercises`, `workout_sets`, `workout_muscle_sets`, `personal_records`. Finished workouts stay on the phone with `synced_at = NULL` until Phase 4's sync engine sends them.
 - Phase 4 added the sync `outbox` and a `version` column on `workouts`. Routine, folder, custom-exercise and workout changes are saved on the phone first and sent by the sync engine; workouts saved in Phase 3 are queued once on the next launch. Signing out clears the outbox, the sync cursor and the workout history (they come back from the server on the next sign-in).
+- Phase 5 added `body_weights`, `body_measurements` and `water_logs` (synced like workouts) and moved the sync cursor to `sync:cursor:v3`, so the first sync after updating pulls everything once.
 - The phone's SQLite database is migrated automatically when the app launches (`DatabaseProvider`).
 - To start fresh on the device, delete the app's data: long-press Expo Go → App info → Clear storage (Android), or reinstall Expo Go (iOS).
 
@@ -171,6 +173,13 @@ Run `make migrate` first (0006 workouts, 0007 the sync cursor).
 6. Profile → **Tools** for the plate, 1RM and warm-up calculators (offline, in your units).
 
 To watch sync on the API: `make logs` and look for `/v1/sync/push` and `/v1/sync/pull`.
+
+### Trying body and water by hand (Phase 5)
+Run `make migrate` (0008, 0009) and `docker compose up -d s3-init` (creates the `progress-photos` bucket). For photos on a physical phone, set `S3_PUBLIC_URL` in `.env` to `http://<your LAN IP>:9010` and `make up`: upload URLs are signed for that host.
+1. Profile → **Body**: log a weight on three days of one week (or three times today) — the weekly average appears, and the chart draws it as a line over the daily dots. Works in airplane mode.
+2. **Measurements**: pick a kind, enter a value (in or cm per Settings), save twice to see the change.
+3. **Progress photos**: take or pick a photo; it uploads straight to SeaweedFS (`docker compose exec s3 ls` won't show it, but `GET /v1/body/photos` returns a signed URL that opens it).
+4. Settings → **Water reminders** on. Home → the water ring → add cups until the goal: "Goal reached. Reminders are done for today." Long-press a cup to change its size.
 
 ### Auth in development
 ```bash
