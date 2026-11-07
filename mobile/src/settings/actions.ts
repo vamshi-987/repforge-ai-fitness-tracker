@@ -68,6 +68,11 @@ export function saveUnits(patch: Partial<ProfilePrefs>): Promise<boolean> {
   return optimistic('profile', patch, () => updateProfile(patch));
 }
 
+/** The user's own daily water goal; null goes back to the one worked out from their weight. */
+export function saveWaterGoal(water_goal_ml: number | null): Promise<boolean> {
+  return optimistic('profile', { water_goal_ml }, () => updateProfile({ water_goal_ml }));
+}
+
 /** Who may see the profile. Not optimistic: a privacy change should only show once it's real. */
 export async function savePrivacy(isPrivate: boolean): Promise<boolean> {
   try {

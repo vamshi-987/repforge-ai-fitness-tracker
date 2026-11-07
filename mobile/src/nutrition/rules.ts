@@ -1,14 +1,6 @@
 import type { Food, FoodLog, Meal, NutritionTargets, Per100g, Serving } from '@/api/types';
 import { round1 } from '@/lib/macros';
 
-export const MEALS: readonly Meal[] = ['breakfast', 'lunch', 'dinner', 'snack'];
-export const MEAL_LABELS: Record<Meal, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snacks',
-};
-
 // --- days -----------------------------------------------------------------------------------
 
 /** The local calendar day of a moment, as YYYY-MM-DD. */
@@ -42,7 +34,7 @@ export function dayLabel(day: string, today: string): string {
   });
 }
 
-/** The meal most people would be logging at this hour. */
+/** The meal most people would be logging at this hour: every log still needs one on the server. */
 export function mealAt(ms: number): Meal {
   const hour = new Date(ms).getHours();
   if (hour < 11) return 'breakfast';
@@ -70,15 +62,6 @@ export function totals(logs: FoodLog[]): Totals {
     carbs_g: sum((l) => l.carbs_g),
     fat_g: sum((l) => l.fat_g),
     fiber_g: sum((l) => l.fiber_g ?? 0),
-  };
-}
-
-export function byMeal(logs: FoodLog[]): Record<Meal, FoodLog[]> {
-  return {
-    breakfast: logs.filter((l) => l.meal === 'breakfast'),
-    lunch: logs.filter((l) => l.meal === 'lunch'),
-    dinner: logs.filter((l) => l.meal === 'dinner'),
-    snack: logs.filter((l) => l.meal === 'snack'),
   };
 }
 

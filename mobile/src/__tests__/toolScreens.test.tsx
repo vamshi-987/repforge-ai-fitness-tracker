@@ -8,9 +8,15 @@ import OneRepMaxScreen from '../../app/tools/one-rep-max';
 import PlateCalculatorScreen from '../../app/tools/plates';
 import WarmupScreen from '../../app/tools/warmup';
 
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn() },
+  useLocalSearchParams: jest.fn(() => ({})),
+}));
 
-const expoRouter = jest.requireMock<{ router: { push: jest.Mock } }>('expo-router');
+const expoRouter = jest.requireMock<{
+  router: { push: jest.Mock };
+  useLocalSearchParams: jest.Mock;
+}>('expo-router');
 
 function signIn(unit: 'kg' | 'lb' = 'kg') {
   const me = makeMe({ onboarding_complete: true });
@@ -35,6 +41,14 @@ describe('Tools', () => {
       '/tools/one-rep-max',
       '/tools/warmup',
     ]);
+  });
+
+  it('starts from the weight a workout passes in', async () => {
+    expoRouter.useLocalSearchParams.mockReturnValueOnce({ weight: '102.5' });
+    await render(<PlateCalculatorScreen />);
+
+    expect(screen.getByLabelText('Target weight (kg)')).toHaveProp('value', '102.5');
+    expect(screen.getByLabelText('Each side: 1 × 25, 1 × 15, 1 × 1.25')).toBeOnTheScreen();
   });
 
   it('loads the bar for a target', async () => {

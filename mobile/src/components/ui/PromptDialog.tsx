@@ -21,6 +21,8 @@ interface PromptDialogProps {
   initialValue?: string;
   confirmLabel?: string;
   maxLength?: number;
+  /** Shown when the field is left empty. */
+  emptyMessage?: string;
   /** Resolve to close the dialog; reject with a message to show it and stay open. */
   onSubmit: (value: string) => Promise<void>;
   onClose: () => void;
@@ -38,6 +40,7 @@ function PromptBody({
   initialValue = '',
   confirmLabel = 'Save',
   maxLength,
+  emptyMessage = 'Enter a name',
   onSubmit,
   onClose,
 }: PromptDialogProps) {
@@ -48,7 +51,7 @@ function PromptBody({
 
   async function submit() {
     if (!value.trim()) {
-      setError('Enter a name');
+      setError(emptyMessage);
       return;
     }
     setBusy(true);

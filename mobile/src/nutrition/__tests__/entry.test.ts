@@ -5,6 +5,7 @@ import {
   formFromLog,
   readCustomFood,
   readEntry,
+  readTargets,
   withMacro,
   type CustomFoodForm,
   type EntryForm,
@@ -148,6 +149,33 @@ describe('a custom food', () => {
       protein: 'Use 0–100',
       fiber: 'Use 0–100',
       servings: 'Each serving needs a name and 1–5000 g',
+    });
+  });
+});
+
+describe('readTargets', () => {
+  const form = { kcal: '2400', protein: '180', carbs: '250', fat: '70' };
+
+  it('reads whole numbers', () => {
+    expect(readTargets(form).fields).toEqual({
+      kcal: 2400,
+      protein_g: 180,
+      carbs_g: 250,
+      fat_g: 70,
+    });
+  });
+
+  it('allows a macro of zero', () => {
+    expect(readTargets({ ...form, carbs: '0' }).errors).toBeNull();
+  });
+
+  it('names each field outside the server’s limits', () => {
+    const { errors } = readTargets({ kcal: '499', protein: '', carbs: '2001', fat: '70.5' });
+    expect(errors).toEqual({
+      kcal: 'Use a whole number from 500 to 10000',
+      protein: 'Use a whole number from 0 to 1000',
+      carbs: 'Use a whole number from 0 to 2000',
+      fat: 'Use a whole number from 0 to 1000',
     });
   });
 });

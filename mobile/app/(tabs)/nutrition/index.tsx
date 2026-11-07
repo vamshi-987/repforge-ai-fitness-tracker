@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { FoodLog, Meal } from '@/api/types';
+import type { FoodLog } from '@/api/types';
 import { FoodRow } from '@/components/nutrition/FoodRow';
 import { MacroBar } from '@/components/nutrition/MacroBar';
 import { ProgressRing } from '@/components/ProgressRing';
@@ -12,21 +12,14 @@ import { Button } from '@/components/ui/Button';
 import { OptionSheet } from '@/components/ui/OptionSheet';
 import { PromptDialog } from '@/components/ui/PromptDialog';
 import { useNow } from '@/lib/useNow';
-import { copyLogs, saveMealTemplate } from '@/nutrition/actions';
-import {
-  dayKey,
-  dayLabel,
-  formatAmount,
-  isDayKey,
-  MEAL_LABELS,
-  MEALS,
-  shiftDay,
-  totals,
-} from '@/nutrition/rules';
+import { copyLogs, deleteLog, saveMealTemplate } from '@/nutrition/actions';
+import { dayKey, dayLabel, formatAmount, isDayKey, shiftDay, totals } from '@/nutrition/rules';
+import { formatMealTime } from '@/nutrition/plan';
 import { NUTRITION_QUERY_KEY, useNutritionDay, useTargets } from '@/nutrition/store';
+import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/theme/useTheme';
 
-/** One day of meals against the targets, from the device, so it all works offline. */
+/** One day's food against the targets, from the device, plus the meal plan. Works offline. */
 export default function NutritionScreen() {
   const { colors, radius, spacing, typography } = useTheme();
   const queryClient = useQueryClient();
@@ -36,35 +29,45 @@ export default function NutritionScreen() {
   const day = picked ?? today;
   const data = useNutritionDay(day);
   const targets = useTargets(day).data ?? null;
-  const [sheet, setSheet] = useState<Meal | null>(null);
-  const [prompt, setPrompt] = useState<{ kind: 'copy' | 'save'; meal: Meal } | null>(null);
+  // A profile cached by an older version has no plan yet.
+  const plan = useAuth((state) => state.me?.settings.meal_plan) ?? [];
+  const [sheet, setSheet] = useState(false);
+  const [prompt, setPrompt] = useState<'copy' | 'save' | null>(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: NUTRITION_QUERY_KEY });
-  const mealLogs = (meal: Meal): FoodLog[] => data.data?.meals[meal] ?? [];
+  const logs = data.data?.logs ?? [];
 
-  async function copyTo(meal: Meal, toDay: string) {
-    await copyLogs(mealLogs(meal), toDay);
+  function confirmRemove(log: FoodLog) {
+    Alert.alert('Remove food?', `${log.name} will be removed from this day.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => void deleteLog(log.id).then(refresh),
+      },
+    ]);
+  }
+
+  async function copyTo(toDay: string) {
+    await copyLogs(logs, toDay);
     await refresh();
   }
 
   async function submitPrompt(text: string) {
-    if (!prompt) return;
     const value = text.trim();
-    if (prompt.kind === 'copy') {
+    if (prompt === 'copy') {
       if (!isDayKey(value)) throw new Error('Use a date like 2026-11-05');
-      await copyTo(prompt.meal, value);
+      await copyTo(value);
     } else {
       if (!value) throw new Error('Give it a name');
-      const saved = await saveMealTemplate(value, mealLogs(prompt.meal));
+      const saved = await saveMealTemplate(value, logs);
       if (!saved) Alert.alert('Nothing to save', 'These entries aren’t linked to a food.');
       await refresh();
     }
     setPrompt(null);
   }
 
-  const copyDays = sheet
-    ? [...new Set([today, shiftDay(day, 1)])].filter((target) => target !== day)
-    : [];
+  const copyDays = [...new Set([today, shiftDay(day, 1)])].filter((target) => target !== day);
   const total = data.data?.totals ?? totals([]);
   const left = targets ? Math.round(targets.kcal - total.kcal) : null;
 
@@ -130,6 +133,15 @@ export default function NutritionScreen() {
         <MacroBar label="Protein" value={total.protein_g} target={targets?.protein_g ?? null} />
         <MacroBar label="Carbs" value={total.carbs_g} target={targets?.carbs_g ?? null} />
         <MacroBar label="Fat" value={total.fat_g} target={targets?.fat_g ?? null} />
+        <Button
+          label="Add food"
+          onPress={() => router.push({ pathname: '/nutrition/add', params: { date: day } })}
+        />
+        <Button
+          label="Edit daily targets"
+          variant="ghost"
+          onPress={() => router.push('/nutrition/targets')}
+        />
       </View>
 
       <Button
@@ -138,47 +150,70 @@ export default function NutritionScreen() {
         onPress={() => router.push('/coach/weekly')}
       />
 
-      {MEALS.map((meal) => {
-        const logs = mealLogs(meal);
-        const label = MEAL_LABELS[meal];
-        return (
-          <View
-            key={meal}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: radius.lg,
-              padding: spacing.md,
-            }}
+      <View
+        style={{
+          backgroundColor: colors.surface,
+          borderRadius: radius.lg,
+          padding: spacing.md,
+          gap: spacing.sm,
+        }}
+      >
+        <View style={[styles.row, { gap: spacing.md }]}>
+          <Text style={[typography.heading, styles.flex, { color: colors.text }]}>Meal plan</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add a planned meal"
+            hitSlop={8}
+            onPress={() => router.push('/nutrition/plan')}
           >
-            <View style={[styles.row, { gap: spacing.md }]}>
-              <Text style={[typography.heading, styles.flex, { color: colors.text }]}>{label}</Text>
-              <Text style={[typography.caption, { color: colors.textMuted }]}>
-                {Math.round(totals(logs).kcal)} kcal
-              </Text>
-              {logs.length > 0 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${label} options`}
-                  hitSlop={8}
-                  onPress={() => setSheet(meal)}
-                >
-                  <Text style={[typography.heading, { color: colors.textMuted }]}>⋯</Text>
-                </Pressable>
-              ) : null}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Add to ${label}`}
-                hitSlop={8}
-                onPress={() =>
-                  router.push({ pathname: '/nutrition/add', params: { date: day, meal } })
-                }
-              >
-                <Text style={[typography.heading, { color: colors.primary }]}>+</Text>
-              </Pressable>
-            </View>
-            {logs.map((log) => (
+            <Text style={[typography.heading, { color: colors.primary }]}>+</Text>
+          </Pressable>
+        </View>
+        {plan.length === 0 ? (
+          <Text style={[typography.body, { color: colors.textMuted }]}>
+            Add your meals and their times to plan your day.
+          </Text>
+        ) : null}
+        {plan.map((meal, index) => (
+          <FoodRow
+            key={`${meal.time}-${meal.name}-${index}`}
+            title={meal.name}
+            value={formatMealTime(meal.time)}
+            accessibilityLabel={`Edit ${meal.name}`}
+            onPress={() =>
+              router.push({ pathname: '/nutrition/plan', params: { index: String(index) } })
+            }
+          />
+        ))}
+      </View>
+
+      <View
+        style={{
+          backgroundColor: colors.surface,
+          borderRadius: radius.lg,
+          padding: spacing.md,
+        }}
+      >
+        <View style={[styles.row, { gap: spacing.md }]}>
+          <Text style={[typography.heading, styles.flex, { color: colors.text }]}>Food logged</Text>
+          {logs.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Food logged options"
+              hitSlop={8}
+              onPress={() => setSheet(true)}
+            >
+              <Text style={[typography.heading, { color: colors.textMuted }]}>⋯</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {logs.length === 0 ? (
+          <Text style={[typography.body, { color: colors.textMuted }]}>Nothing logged yet.</Text>
+        ) : null}
+        {logs.map((log) => (
+          <View key={log.id} style={[styles.row, { gap: spacing.md }]}>
+            <View style={styles.flex}>
               <FoodRow
-                key={log.id}
                 title={log.name}
                 detail={[
                   `${formatAmount(log.quantity)} ${log.unit}`,
@@ -195,45 +230,43 @@ export default function NutritionScreen() {
                   })
                 }
               />
-            ))}
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${log.name}`}
+              hitSlop={8}
+              onPress={() => confirmRemove(log)}
+            >
+              <Text style={[typography.caption, { color: colors.danger }]}>Remove</Text>
+            </Pressable>
           </View>
-        );
-      })}
+        ))}
+      </View>
 
       <Text style={[typography.caption, { color: colors.textMuted }]}>
         Estimates only, not medical advice.
       </Text>
 
       <OptionSheet
-        visible={sheet !== null}
-        title={sheet ? MEAL_LABELS[sheet] : ''}
-        onClose={() => setSheet(null)}
-        options={
-          sheet
-            ? [
-                ...copyDays.map((target) => ({
-                  label: `Copy to ${dayLabel(target, today).toLowerCase()}`,
-                  onPress: () => void copyTo(sheet, target),
-                })),
-                {
-                  label: 'Copy to another day',
-                  onPress: () => setPrompt({ kind: 'copy', meal: sheet }),
-                },
-                {
-                  label: 'Save as a meal',
-                  onPress: () => setPrompt({ kind: 'save', meal: sheet }),
-                },
-              ]
-            : []
-        }
+        visible={sheet}
+        title="Food logged"
+        onClose={() => setSheet(false)}
+        options={[
+          ...copyDays.map((target) => ({
+            label: `Copy to ${dayLabel(target, today).toLowerCase()}`,
+            onPress: () => void copyTo(target),
+          })),
+          { label: 'Copy to another day', onPress: () => setPrompt('copy') },
+          { label: 'Save as a meal', onPress: () => setPrompt('save') },
+        ]}
       />
       <PromptDialog
         visible={prompt !== null}
-        title={prompt?.kind === 'copy' ? 'Copy to another day' : 'Save as a meal'}
-        label={prompt?.kind === 'copy' ? 'Date (YYYY-MM-DD)' : 'Meal name'}
-        initialValue={prompt?.kind === 'copy' ? shiftDay(day, 1) : ''}
-        confirmLabel={prompt?.kind === 'copy' ? 'Copy' : 'Save'}
-        maxLength={prompt?.kind === 'copy' ? 10 : 80}
+        title={prompt === 'copy' ? 'Copy to another day' : 'Save as a meal'}
+        label={prompt === 'copy' ? 'Date (YYYY-MM-DD)' : 'Meal name'}
+        initialValue={prompt === 'copy' ? shiftDay(day, 1) : ''}
+        confirmLabel={prompt === 'copy' ? 'Copy' : 'Save'}
+        maxLength={prompt === 'copy' ? 10 : 80}
         onSubmit={submitPrompt}
         onClose={() => setPrompt(null)}
       />

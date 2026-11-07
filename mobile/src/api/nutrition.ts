@@ -1,6 +1,13 @@
 import { session } from '@/auth/session';
 
-import type { Food, FoodDraft, FoodSearch, NutritionTargets, PhotoAnalysis } from './types';
+import type {
+  Food,
+  FoodDraft,
+  FoodSearch,
+  NutritionTargets,
+  PhotoAnalysis,
+  TargetsUpdate,
+} from './types';
 
 export function searchFoods(query: string): Promise<FoodSearch> {
   return session.request<FoodSearch>(`/foods/search?${new URLSearchParams({ q: query })}`);
@@ -12,6 +19,10 @@ export function foodByBarcode(code: string): Promise<Food> {
 
 export function getTargets(day: string): Promise<NutritionTargets> {
   return session.request<NutritionTargets>(`/nutrition/targets?date=${day}`);
+}
+
+export function setTargets(body: TargetsUpdate): Promise<NutritionTargets> {
+  return session.request<NutritionTargets>('/nutrition/targets', { method: 'POST', body });
 }
 
 export function uploadFoodPhoto(uri: string): Promise<{ analysis_id: string }> {

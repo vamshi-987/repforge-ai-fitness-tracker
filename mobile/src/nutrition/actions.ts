@@ -1,6 +1,16 @@
 import * as nutritionApi from '@/api/nutrition';
 import { ApiError } from '@/api/client';
-import type { Food, FoodLog, LogSource, Meal, Per100g, SavedMeal, Serving } from '@/api/types';
+import type {
+  Food,
+  FoodLog,
+  LogSource,
+  Meal,
+  NutritionTargets,
+  Per100g,
+  SavedMeal,
+  Serving,
+  TargetsUpdate,
+} from '@/api/types';
 import { newId } from '@/lib/ids';
 import { logAmounts, type MacroOverride } from '@/lib/macros';
 import { deletion, foodChange, foodLogChange, savedMealChange } from '@/sync/changes';
@@ -9,9 +19,17 @@ import { queueChange } from '@/sync/queue';
 import { per100g } from './rules';
 import { nutritionRepo } from './store';
 
-// Logged on the device first and queued for the server, so everything here works offline.
+// Logged on the device first and queued for the server, so everything here works offline,
+// apart from `saveTargets`.
 
 const iso = (ms: number) => new Date(ms).toISOString();
+
+/** The user's own targets from today. Needs the server, which enforces the safe calorie floor. */
+export async function saveTargets(fields: TargetsUpdate): Promise<NutritionTargets> {
+  const saved = await nutritionApi.setTargets(fields);
+  await nutritionRepo.putTargets(saved);
+  return saved;
+}
 
 export interface FoodFields {
   name: string;

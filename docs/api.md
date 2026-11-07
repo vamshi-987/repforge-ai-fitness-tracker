@@ -146,7 +146,8 @@ The account, onboarding profile and app settings in one response, so the app can
   "settings": {
     "theme": "system", "default_rest_s": 90, "keep_awake": true, "show_burned_kcal": false,
     "water_cup_sizes": [250, 500, 750], "water_reminder_every_h": 2,
-    "wake_time": "07:00:00", "sleep_time": "22:00:00", "reminders_enabled": false
+    "wake_time": "07:00:00", "sleep_time": "22:00:00", "reminders_enabled": false,
+    "meal_plan": []
   }
 }
 ```
@@ -195,6 +196,7 @@ The required answers are `sex`, `birth_date`, `height_cm`, `weight_kg`, `activit
 | `water_cup_sizes` | 1–6 distinct integers, 50–2000 ml (returned sorted) |
 | `water_reminder_every_h` | 1–12 |
 | `wake_time`, `sleep_time` | `HH:MM`; must differ, checked against the stored value when only one is sent |
+| `meal_plan` | Up to 12 of `{"name": "Breakfast", "time": "08:30"}` (name 1–40 characters, 24-hour `HH:MM`), replaced as a whole. For planning only: food logs don't point at these |
 
 **200** the `settings` object · **422**
 

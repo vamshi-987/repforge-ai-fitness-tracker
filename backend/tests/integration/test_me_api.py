@@ -76,6 +76,7 @@ async def test_new_account_has_default_profile_and_settings(
         "wake_time": "07:00:00",
         "sleep_time": "22:00:00",
         "reminders_enabled": False,
+        "meal_plan": [],
     }
 
 
@@ -269,6 +270,39 @@ async def test_settings_round_trip(api_client: AsyncClient, auth: dict[str, str]
     assert fetched["water_cup_sizes"] == [200, 330]
     assert fetched["wake_time"] == "06:30:00"
     assert fetched["sleep_time"] == "22:00:00"
+
+
+async def test_meal_plan_round_trip(api_client: AsyncClient, auth: dict[str, str]) -> None:
+    plan = [{"name": "Breakfast", "time": "08:30"}, {"name": "Pre-workout", "time": "17:00"}]
+
+    response = await api_client.patch(
+        "/v1/me/settings",
+        headers=auth,
+        json={"meal_plan": [*plan[:1], {**plan[1], "name": " Pre-workout "}]},
+    )
+
+    assert response.status_code == 200, response.text
+    assert (await api_client.get("/v1/me/settings", headers=auth)).json()["meal_plan"] == plan
+    cleared = await api_client.patch("/v1/me/settings", headers=auth, json={"meal_plan": []})
+    assert cleared.json()["meal_plan"] == []
+
+
+@pytest.mark.parametrize(
+    "plan",
+    [
+        [{"name": "", "time": "08:00"}],
+        [{"name": "Breakfast", "time": "24:00"}],
+        [{"name": "Breakfast", "time": "8:00"}],
+        [{"name": "Breakfast", "time": "08:00", "kcal": 500}],
+        [{"name": "Meal", "time": "08:00"}] * 13,
+    ],
+)
+async def test_meal_plan_validation(
+    api_client: AsyncClient, auth: dict[str, str], plan: list[dict[str, object]]
+) -> None:
+    response = await api_client.patch("/v1/me/settings", headers=auth, json={"meal_plan": plan})
+
+    assert response.status_code == 422, response.text
 
 
 @pytest.mark.parametrize(

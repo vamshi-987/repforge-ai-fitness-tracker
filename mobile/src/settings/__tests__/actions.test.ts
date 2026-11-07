@@ -2,7 +2,7 @@ import { session } from '@/auth/session';
 import { resetAuthStoreForTests, useAuth } from '@/stores/auth';
 import { errorResponse, fetchCalls, jsonResponse, makeMe, tokenPair } from '@/test/helpers';
 
-import { saveSettings, saveUnits } from '../actions';
+import { saveSettings, saveUnits, saveWaterGoal } from '../actions';
 
 const settingsOf = () => useAuth.getState().me!.settings;
 
@@ -105,5 +105,36 @@ describe('optimistic settings', () => {
 
     await expect(saveSettings({ theme: 'dark' })).resolves.toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('saveWaterGoal', () => {
+  const profileOf = () => useAuth.getState().me!.profile;
+
+  it('sends the goal, and null to go back to the recommended one', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, { ...makeMe().profile, water_goal_ml: 3000 }))
+      .mockResolvedValueOnce(jsonResponse(200, { ...makeMe().profile, water_goal_ml: null }));
+    globalThis.fetch = fetchMock;
+
+    await expect(saveWaterGoal(3000)).resolves.toBe(true);
+    expect(profileOf().water_goal_ml).toBe(3000);
+    await expect(saveWaterGoal(null)).resolves.toBe(true);
+    expect(profileOf().water_goal_ml).toBeNull();
+
+    expect(fetchCalls(fetchMock).map((call) => JSON.parse(String(call.init.body)))).toEqual([
+      { water_goal_ml: 3000 },
+      { water_goal_ml: null },
+    ]);
+  });
+
+  it('rolls back when the server refuses', async () => {
+    globalThis.fetch = jest
+      .fn()
+      .mockResolvedValue(errorResponse(422, 'validation_error', 'Too high'));
+
+    await expect(saveWaterGoal(3000)).resolves.toBe(false);
+    expect(profileOf().water_goal_ml).toBeNull();
   });
 });

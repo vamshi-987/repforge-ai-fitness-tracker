@@ -24,6 +24,7 @@ import {
   describeSet,
   distanceUnit,
   fillFromPrevious,
+  nextLoad,
   RPE_VALUES,
   type Units,
 } from '@/workout/setValues';
@@ -109,6 +110,14 @@ export function WorkoutExerciseCard({
         distanceM: prev.distanceM,
       }),
     );
+  };
+
+  const openPlates = () => {
+    const weight = nextLoad(exercise.sets, previous, units.weight);
+    router.push({
+      pathname: '/tools/plates',
+      params: weight === null ? {} : { weight: String(weight) },
+    });
   };
 
   const remove = () => {
@@ -214,6 +223,16 @@ export function WorkoutExerciseCard({
               : ''}
           </Text>
         </Pressable>
+        {inputs.load === 'load' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${exercise.name} plate calculator`}
+            onPress={openPlates}
+            hitSlop={12}
+          >
+            <Text style={[typography.caption, styles.bold, { color: colors.primary }]}>Plates</Text>
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${exercise.name} options`}

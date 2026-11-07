@@ -4,7 +4,7 @@ import { useTheme } from '@/theme/useTheme';
 
 interface FoodRowProps {
   title: string;
-  detail: string;
+  detail?: string;
   /** Right-hand figure, e.g. "320 kcal". */
   value?: string;
   accessibilityLabel?: string;
@@ -25,9 +25,11 @@ export function FoodRow({ title, detail, value, accessibilityLabel, onPress }: F
         <Text numberOfLines={2} style={[typography.body, { color: colors.text }]}>
           {title}
         </Text>
-        <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
-          {detail}
-        </Text>
+        {detail ? (
+          <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
+            {detail}
+          </Text>
+        ) : null}
       </View>
       {value ? <Text style={[typography.caption, { color: colors.text }]}>{value}</Text> : null}
     </Pressable>

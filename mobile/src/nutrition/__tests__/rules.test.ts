@@ -3,7 +3,6 @@ import { makeFood, makeLog } from '@/test/nutrition';
 
 import { createMemoryNutritionRepo } from '../repo';
 import {
-  byMeal,
   dayKey,
   dayLabel,
   defaultPortion,
@@ -74,13 +73,6 @@ describe('totals', () => {
       fiber_g: 2,
     });
     expect(totals([])).toEqual({ kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0 });
-  });
-
-  it('groups logs by meal, keeping every meal', () => {
-    const meals = byMeal([makeLog({ meal: 'dinner' })]);
-
-    expect(meals.dinner).toHaveLength(1);
-    expect(meals.breakfast).toEqual([]);
   });
 });
 

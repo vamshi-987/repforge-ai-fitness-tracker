@@ -1,9 +1,9 @@
 from datetime import date, datetime, time
 from functools import lru_cache
-from typing import Annotated, ClassVar
+from typing import Annotated, ClassVar, TypedDict
 from zoneinfo import available_timezones
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, with_config
 
 from app.db.models import (
     ActivityLevel,
@@ -34,6 +34,14 @@ def _distinct_sorted(values: list[int]) -> list[int]:
     if len(set(values)) != len(values):
         raise ValueError("cup sizes must be distinct")
     return sorted(values)
+
+
+@with_config(ConfigDict(extra="forbid"))
+class PlannedMeal(TypedDict):
+    """A meal on the user's plan: a plain dict, so it's stored as JSON as it is."""
+
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
+    time: Annotated[str, StringConstraints(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")]
 
 
 Timezone = Annotated[str, Field(max_length=64), AfterValidator(_known_timezone)]
@@ -76,6 +84,7 @@ class SettingsOut(BaseModel):
     wake_time: time
     sleep_time: time
     reminders_enabled: bool
+    meal_plan: list[PlannedMeal]
 
 
 class MeOut(UserOut):
@@ -119,3 +128,4 @@ class SettingsUpdate(PatchModel):
     wake_time: time | None = None
     sleep_time: time | None = None
     reminders_enabled: bool | None = None
+    meal_plan: Annotated[list[PlannedMeal], Field(max_length=12)] | None = None

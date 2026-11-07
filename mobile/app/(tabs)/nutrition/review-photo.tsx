@@ -18,7 +18,6 @@ import {
   type DraftRow,
   type DraftTarget,
 } from '@/nutrition/draft';
-import { MEAL_LABELS } from '@/nutrition/rules';
 import { NUTRITION_QUERY_KEY, usePhotoAnalysis } from '@/nutrition/store';
 import { useTheme } from '@/theme/useTheme';
 
@@ -114,7 +113,7 @@ function Review({ draft, target }: { draft: FoodDraft; target: DraftTarget }) {
         </Text>
       ) : null}
       <Button
-        label={`Add ${draftKcal(rows)} kcal to ${MEAL_LABELS[target.meal]}`}
+        label={`Add ${draftKcal(rows)} kcal`}
         disabled={rows.length === 0}
         onPress={() => void confirm()}
       />

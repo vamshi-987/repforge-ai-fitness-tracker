@@ -7,7 +7,6 @@ import type { Food, FoodLog, LogSource, Meal, Per100g } from '@/api/types';
 import { AmountFields } from '@/components/nutrition/AmountFields';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
 import { useNow } from '@/lib/useNow';
 import { addLog, deleteLog, updateLog } from '@/nutrition/actions';
@@ -16,9 +15,7 @@ import {
   dayKey,
   defaultPortion,
   formatAmount,
-  MEAL_LABELS,
   mealAt,
-  MEALS,
   per100g,
   unitOptions,
 } from '@/nutrition/rules';
@@ -55,7 +52,8 @@ function Entry({ mode, log, food, date, meal: initialMeal, source }: EntryProps)
   const { colors, spacing, typography } = useTheme();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(() => startingForm(mode, log, food));
-  const [meal, setMeal] = useState(log && mode === 'edit' ? log.meal : initialMeal);
+  // Kept for the server, which files each log under one; the app doesn't ask or show it.
+  const meal = log && mode === 'edit' ? log.meal : initialMeal;
   const [showError, setShowError] = useState(false);
 
   // A saved log keeps its snapshot; a new one takes the food's current values.
@@ -123,13 +121,6 @@ function Entry({ mode, log, food, date, meal: initialMeal, source }: EntryProps)
         {brand ? <Text style={[typography.body, { color: colors.textMuted }]}>{brand}</Text> : null}
       </View>
 
-      <SegmentedControl
-        label="Meal"
-        value={meal}
-        onChange={setMeal}
-        segments={MEALS.map((value) => ({ value, label: MEAL_LABELS[value] }))}
-      />
-
       <TextField
         label="Amount"
         value={form.quantity}
@@ -165,10 +156,7 @@ function Entry({ mode, log, food, date, meal: initialMeal, source }: EntryProps)
         />
       ) : null}
 
-      <Button
-        label={mode === 'edit' ? 'Save' : `Add to ${MEAL_LABELS[meal]}`}
-        onPress={() => void save()}
-      />
+      <Button label={mode === 'edit' ? 'Save' : 'Add food'} onPress={() => void save()} />
       {food?.is_custom ? (
         <Button
           label="Edit this food"
