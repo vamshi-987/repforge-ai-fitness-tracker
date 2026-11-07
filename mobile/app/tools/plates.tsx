@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
@@ -8,12 +9,13 @@ import { parseDecimal } from '@/lib/units';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/theme/useTheme';
 
-/** Which plates go on each side of the bar for a target weight. */
+/** Which plates go on each side of the bar for a target weight; a workout passes its own. */
 export default function PlateCalculatorScreen() {
   const { colors, radius, spacing, typography } = useTheme();
   const unit = useAuth((state) => state.me?.profile.unit_weight ?? 'kg');
+  const { weight } = useLocalSearchParams<{ weight?: string }>();
   const [bar, setBar] = useState(BARS[unit][0] ?? 20);
-  const [text, setText] = useState('');
+  const [text, setText] = useState(weight ?? '');
   const target = parseDecimal(text);
   const load = target === null ? null : loadBar(target, bar, PLATES[unit]);
 

@@ -20,6 +20,8 @@ export default function NutritionLayout() {
       <Stack.Screen name="food/[id]" options={{ ...header, title: '' }} />
       <Stack.Screen name="custom" options={{ ...header, title: 'Custom food' }} />
       <Stack.Screen name="review-photo" options={{ ...header, title: 'Review' }} />
+      <Stack.Screen name="targets" options={{ ...header, title: 'Daily targets' }} />
+      <Stack.Screen name="plan" options={{ ...header, title: 'Planned meal' }} />
     </Stack>
   );
 }

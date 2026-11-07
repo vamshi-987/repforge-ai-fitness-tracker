@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
+import { Alert } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import type { NutritionTargets } from '@/api/types';
@@ -15,6 +16,7 @@ import CustomFoodScreen from '../../app/(tabs)/nutrition/custom';
 import FoodEntryScreen from '../../app/(tabs)/nutrition/food/[id]';
 import NutritionScreen from '../../app/(tabs)/nutrition/index';
 import ReviewPhotoScreen from '../../app/(tabs)/nutrition/review-photo';
+import TargetsScreen from '../../app/(tabs)/nutrition/targets';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), dismissTo: jest.fn() },
@@ -26,6 +28,7 @@ jest.mock('@/api/nutrition', () => ({
   getTargets: jest.fn(),
   parseFoodText: jest.fn(),
   searchFoods: jest.fn(),
+  setTargets: jest.fn(),
   uploadFoodPhoto: jest.fn(),
 }));
 jest.mock('@/nutrition/photo', () => ({ prepareFoodPhoto: jest.fn(async () => 'file://small') }));
@@ -47,7 +50,10 @@ const expoRouter = jest.requireMock<{
 const { router } = expoRouter;
 type ApiMock =
   'foodByBarcode' | 'getPhotoAnalysis' | 'getTargets' | 'parseFoodText' | 'searchFoods';
-const api = jest.requireMock<Record<ApiMock | 'uploadFoodPhoto', jest.Mock>>('@/api/nutrition');
+const api =
+  jest.requireMock<Record<ApiMock | 'setTargets' | 'uploadFoodPhoto', jest.Mock>>(
+    '@/api/nutrition',
+  );
 const picker = jest.requireMock<Record<string, jest.Mock>>('expo-image-picker');
 const camera = jest.requireMock<{ CameraView: jest.Mock; useCameraPermissions: jest.Mock }>(
   'expo-camera',
@@ -93,7 +99,7 @@ beforeEach(async () => {
 });
 
 describe('The day', () => {
-  it('shows meals and totals against the targets', async () => {
+  it('shows the day’s food and totals against the targets', async () => {
     await repo.putLog(makeLog({ log_date: today() }));
     await repo.putLog(makeLog({ id: 'b', log_date: today(), meal: 'snack', kcal: 170 }));
 
@@ -102,7 +108,8 @@ describe('The day', () => {
     expect(await screen.findByLabelText('Calories: 500 of 2000 kcal')).toBeOnTheScreen();
     expect(screen.getByText('1500 kcal left of 2000')).toBeOnTheScreen();
     expect(screen.getByLabelText('Protein: 40 of 150 g')).toBeOnTheScreen();
-    expect(screen.getAllByText('330 kcal')).toHaveLength(2);
+    expect(screen.getByText('330 kcal')).toBeOnTheScreen();
+    expect(screen.getByText('170 kcal')).toBeOnTheScreen();
     expect(screen.getByText('Estimates only, not medical advice.')).toBeOnTheScreen();
   });
 
@@ -144,14 +151,14 @@ describe('The day', () => {
     expect(await screen.findByText('Today')).toBeOnTheScreen();
   });
 
-  it('opens add for a meal, and a log to edit it', async () => {
+  it('opens add from the one button, and a log to edit it', async () => {
     await repo.putLog(makeLog({ log_date: today() }));
     await show(<NutritionScreen />);
 
-    await fireEvent.press(await screen.findByLabelText('Add to Dinner'));
+    await fireEvent.press(await screen.findByLabelText('Add food'));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/nutrition/add',
-      params: { date: today(), meal: 'dinner' },
+      params: { date: today() },
     });
 
     await fireEvent.press(await screen.findByLabelText('Edit Dal'));
@@ -159,6 +166,45 @@ describe('The day', () => {
       pathname: '/nutrition/food/[id]',
       params: { id: 'log-1', mode: 'edit' },
     });
+  });
+
+  it('removes a food from the list once you confirm, and syncs it', async () => {
+    const alert = jest.spyOn(Alert, 'alert');
+    await repo.putLog(makeLog({ log_date: today() }));
+    await repo.putLog(makeLog({ id: 'b', log_date: today(), name: 'Rice', kcal: 170 }));
+    await show(<NutritionScreen />);
+
+    await fireEvent.press(await screen.findByLabelText('Remove Dal'));
+    expect(alert).toHaveBeenCalledWith(
+      'Remove food?',
+      'Dal will be removed from this day.',
+      expect.anything(),
+    );
+    expect(repo.logs).toHaveLength(2);
+
+    const buttons = alert.mock.calls[0]?.[2];
+    await act(async () => buttons?.find((b) => b.text === 'Remove')?.onPress?.());
+
+    await waitFor(() => expect(screen.queryByLabelText('Edit Dal')).toBeNull());
+    expect(screen.getByLabelText('Edit Rice')).toBeOnTheScreen();
+    expect(repo.logs.map((log) => log.id)).toEqual(['b']);
+    expect(outbox.items).toEqual([
+      expect.objectContaining({ entity: 'food_log', entityId: 'log-1', op: 'delete' }),
+    ]);
+    alert.mockRestore();
+  });
+
+  it('keeps the food if you cancel', async () => {
+    const alert = jest.spyOn(Alert, 'alert');
+    await repo.putLog(makeLog({ log_date: today() }));
+    await show(<NutritionScreen />);
+
+    await fireEvent.press(await screen.findByLabelText('Remove Dal'));
+    await act(async () => alert.mock.calls[0]?.[2]?.[0]?.onPress?.());
+
+    expect(repo.logs).toHaveLength(1);
+    expect(outbox.items).toEqual([]);
+    alert.mockRestore();
   });
 
   it('links to the weekly report', async () => {
@@ -169,11 +215,11 @@ describe('The day', () => {
     expect(router.push).toHaveBeenCalledWith('/coach/weekly');
   });
 
-  it('copies a meal to tomorrow', async () => {
+  it('copies the day’s food to tomorrow', async () => {
     await repo.putLog(makeLog({ log_date: today() }));
     await show(<NutritionScreen />);
 
-    await fireEvent.press(await screen.findByLabelText('Lunch options'));
+    await fireEvent.press(await screen.findByLabelText('Food logged options'));
     await fireEvent.press(screen.getByText('Copy to tomorrow'));
 
     await waitFor(async () =>
@@ -184,11 +230,11 @@ describe('The day', () => {
     expect(outbox.items).toHaveLength(1);
   });
 
-  it('copies a meal to a typed date, refusing one that isn’t real', async () => {
+  it('copies the day’s food to a typed date, refusing one that isn’t real', async () => {
     await repo.putLog(makeLog({ log_date: today() }));
     await show(<NutritionScreen />);
 
-    await fireEvent.press(await screen.findByLabelText('Lunch options'));
+    await fireEvent.press(await screen.findByLabelText('Food logged options'));
     await fireEvent.press(screen.getByText('Copy to another day'));
     await fireEvent.changeText(screen.getByLabelText('Date (YYYY-MM-DD)'), '2026-02-30');
     await fireEvent.press(screen.getByLabelText('Copy'));
@@ -199,11 +245,11 @@ describe('The day', () => {
     await waitFor(async () => expect(await repo.logsOn('2026-03-01')).toHaveLength(1));
   });
 
-  it('saves a meal as a template', async () => {
+  it('saves the day’s food as a template', async () => {
     await repo.putLog(makeLog({ log_date: today() }));
     await show(<NutritionScreen />);
 
-    await fireEvent.press(await screen.findByLabelText('Lunch options'));
+    await fireEvent.press(await screen.findByLabelText('Food logged options'));
     await fireEvent.press(screen.getByText('Save as a meal'));
     await fireEvent.changeText(screen.getByLabelText('Meal name'), 'Usual lunch');
     await fireEvent.press(screen.getByLabelText('Save'));
@@ -500,7 +546,7 @@ describe('Reviewing a photo', () => {
     await fireEvent.changeText(screen.getByLabelText('Dal protein'), '20');
     // 4 × 20 + 4 × 10 + 9 × 3.
     expect(screen.getByLabelText('Dal calories')).toHaveProp('value', '147');
-    await fireEvent.press(screen.getByLabelText('Add 147 kcal to Dinner'));
+    await fireEvent.press(screen.getByLabelText('Add 147 kcal'));
 
     await waitFor(() => expect(router.dismissTo).toHaveBeenCalledWith('/nutrition'));
     expect(await repo.logsOn('2026-11-05')).toEqual([
@@ -525,7 +571,7 @@ describe('Reviewing a photo', () => {
     await fireEvent.press(screen.getByLabelText('Remove Dal'));
     expect(screen.queryByLabelText('Dal grams')).toBeNull();
     await fireEvent.changeText(screen.getByLabelText('Item'), ' ');
-    await fireEvent.press(screen.getByLabelText('Add 200 kcal to Dinner'));
+    await fireEvent.press(screen.getByLabelText('Add 200 kcal'));
 
     expect(await screen.findByText('Every item needs a name')).toBeOnTheScreen();
     expect(repo.logs).toEqual([]);
@@ -555,7 +601,7 @@ describe('Reviewing a photo', () => {
     params({ date: '2026-11-05', meal: 'dinner' });
     await show(<ReviewPhotoScreen />);
 
-    await fireEvent.press(await screen.findByLabelText('Add 200 kcal to Dinner'));
+    await fireEvent.press(await screen.findByLabelText('Add 200 kcal'));
 
     await waitFor(() => expect(router.dismissTo).toHaveBeenCalled());
     expect(await repo.logsOn('2026-11-05')).toEqual([
@@ -582,7 +628,7 @@ describe('A food entry', () => {
     expect(await screen.findByLabelText('Calories')).toHaveProp('value', '330');
     await fireEvent.changeText(screen.getByLabelText('Amount'), '1.5');
     expect(screen.getByLabelText('Calories')).toHaveProp('value', '495');
-    await fireEvent.press(screen.getByLabelText('Add to Lunch'));
+    await fireEvent.press(screen.getByLabelText('Add food'));
 
     await waitFor(() => expect(router.dismissTo).toHaveBeenCalledWith('/nutrition'));
     expect(await repo.logsOn('2026-11-05')).toEqual([
@@ -600,7 +646,7 @@ describe('A food entry', () => {
 
     // 4 × 20 + 4 × 20 + 9 × 5.
     expect(screen.getByLabelText('Calories')).toHaveProp('value', '205');
-    await fireEvent.press(screen.getByLabelText('Add to Lunch'));
+    await fireEvent.press(screen.getByLabelText('Add food'));
 
     await waitFor(() => expect(outbox.items).toHaveLength(1));
     expect(outbox.items[0]?.data).toMatchObject({
@@ -627,7 +673,7 @@ describe('A food entry', () => {
     await show(<FoodEntryScreen />);
 
     await fireEvent.changeText(await screen.findByLabelText('Amount'), '');
-    await fireEvent.press(screen.getByLabelText('Add to Lunch'));
+    await fireEvent.press(screen.getByLabelText('Add food'));
 
     expect(await screen.findByText('Enter an amount')).toBeOnTheScreen();
     expect(outbox.items).toEqual([]);
@@ -640,11 +686,10 @@ describe('A food entry', () => {
     await show(<FoodEntryScreen />);
 
     await fireEvent.changeText(await screen.findByLabelText('Amount'), '100');
-    await fireEvent.press(screen.getByLabelText('Meal: Dinner'));
     await fireEvent.press(screen.getByLabelText('Save'));
 
     await waitFor(() => expect(router.dismissTo).toHaveBeenCalled());
-    expect(await repo.log('log-1')).toMatchObject({ kcal: 165, meal: 'dinner', quantity: 100 });
+    expect(await repo.log('log-1')).toMatchObject({ kcal: 165, meal: 'lunch', quantity: 100 });
     expect(outbox.items[0]).toMatchObject({ baseVersion: 2 });
   });
 
@@ -665,7 +710,7 @@ describe('A food entry', () => {
     await show(<FoodEntryScreen />);
 
     expect(await screen.findByLabelText('Calories')).toHaveProp('value', '330');
-    await fireEvent.press(screen.getByLabelText('Add to Dinner'));
+    await fireEvent.press(screen.getByLabelText('Add food'));
 
     await waitFor(() => expect(router.dismissTo).toHaveBeenCalled());
     expect(await repo.logsOn('2026-11-05')).toEqual([
@@ -691,6 +736,69 @@ describe('A food entry', () => {
     await show(<FoodEntryScreen />);
 
     expect(await screen.findByText('This entry is no longer here.')).toBeOnTheScreen();
+  });
+});
+
+describe('Daily targets', () => {
+  it('opens from the day', async () => {
+    await show(<NutritionScreen />);
+
+    await fireEvent.press(await screen.findByLabelText('Edit daily targets'));
+
+    expect(router.push).toHaveBeenCalledWith('/nutrition/targets');
+  });
+
+  it('starts from the current targets, saves new ones and keeps them for offline', async () => {
+    const saved = { ...TARGETS, effective_from: today(), kcal: 2400, reason: 'manual' };
+    api.setTargets.mockResolvedValue(saved);
+    await show(<TargetsScreen />);
+
+    expect(await screen.findByLabelText('Calories')).toHaveProp('value', '2000');
+    expect(screen.getByLabelText('Protein')).toHaveProp('value', '150');
+    expect(screen.getByText('These macros add up to 1940 kcal.')).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Calories'), '2400');
+    await fireEvent.changeText(screen.getByLabelText('Protein'), '180');
+    await fireEvent.press(screen.getByLabelText('Save targets'));
+
+    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect(api.setTargets).toHaveBeenCalledWith({
+      kcal: 2400,
+      protein_g: 180,
+      carbs_g: 200,
+      fat_g: 60,
+    });
+    expect(await repo.targetsOn(today())).toMatchObject({ kcal: 2400, reason: 'manual' });
+  });
+
+  it('shows the server’s safe minimum under the calories', async () => {
+    api.setTargets.mockRejectedValue(
+      new ApiError(422, 'target_below_safe_minimum', 'Daily calories can’t go below 1800 kcal.', {
+        minimum_kcal: 1800,
+      }),
+    );
+    await show(<TargetsScreen />);
+
+    await fireEvent.changeText(await screen.findByLabelText('Calories'), '900');
+    await fireEvent.press(screen.getByLabelText('Save targets'));
+
+    expect(await screen.findByText(/can’t go below 1800 kcal/)).toBeOnTheScreen();
+    expect(router.back).not.toHaveBeenCalled();
+  });
+
+  it('says so when it can’t reach the server, and refuses bad numbers first', async () => {
+    api.setTargets.mockRejectedValue(OFFLINE);
+    await show(<TargetsScreen />);
+
+    await fireEvent.changeText(await screen.findByLabelText('Fat'), '60.5');
+    await fireEvent.press(screen.getByLabelText('Save targets'));
+    expect(await screen.findByText(/whole number from 0 to 1000/)).toBeOnTheScreen();
+    expect(api.setTargets).not.toHaveBeenCalled();
+
+    await fireEvent.changeText(screen.getByLabelText('Fat'), '60');
+    await fireEvent.press(screen.getByLabelText('Save targets'));
+    expect(await screen.findByText(/Can't reach RepForge/)).toBeOnTheScreen();
+    expect(router.back).not.toHaveBeenCalled();
   });
 });
 

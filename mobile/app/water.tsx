@@ -8,14 +8,15 @@ import { ProgressRing } from '@/components/ProgressRing';
 import { Button } from '@/components/ui/Button';
 import { PromptDialog } from '@/components/ui/PromptDialog';
 import { useNow } from '@/lib/useNow';
-import { saveSettings } from '@/settings/actions';
+import { saveSettings, saveWaterGoal } from '@/settings/actions';
 import { useAuth } from '@/stores/auth';
 import { useTheme } from '@/theme/useTheme';
-import { addWater, removeWater } from '@/water/actions';
-import { dailyTotals } from '@/water/rules';
+import { addWater, removeWater, syncWaterReminders } from '@/water/actions';
+import { dailyTotals, TRAINING_DAY_EXTRA_ML } from '@/water/rules';
 import { HISTORY_DAYS, useWaterHistory, useWaterToday, WATER_QUERY_KEY } from '@/water/store';
 
 const UNDO_MS = 5000;
+const GOAL_NOT_SAVED = 'Couldn’t save your goal. Check your connection and try again.';
 
 /** Today's water against the goal, quick-add cups, undo, and the last two weeks. Offline. */
 export default function WaterScreen() {
@@ -26,8 +27,10 @@ export default function WaterScreen() {
   const today = useWaterToday(me, now);
   const history = useWaterHistory(now);
   const [undo, setUndo] = useState<WaterLog | null>(null);
-  const [editing, setEditing] = useState<number | 'custom' | null>(null);
+  const [editing, setEditing] = useState<number | 'custom' | 'goal' | null>(null);
+  const [goalError, setGoalError] = useState<string | null>(null);
   const cups = me?.settings.water_cup_sizes ?? [250, 500, 750];
+  const ownGoal = me?.profile.water_goal_ml ?? null;
 
   useEffect(() => {
     if (!undo) return undefined;
@@ -55,9 +58,28 @@ export default function WaterScreen() {
     setEditing(null);
   }
 
+  /** A new goal can meet today's, or un-meet it, so the reminders are planned again. */
+  async function changeGoal(ml: number | null) {
+    const saved = await saveWaterGoal(ml);
+    if (saved) await syncWaterReminders();
+    setGoalError(saved ? null : GOAL_NOT_SAVED);
+    return saved;
+  }
+
+  async function submitGoal(text: string) {
+    const ml = Number(text);
+    if (!Number.isInteger(ml) || ml < 500 || ml > 10_000) throw new Error('Use 500–10000 ml');
+    if (!(await changeGoal(ml))) {
+      setGoalError(null);
+      throw new Error(GOAL_NOT_SAVED);
+    }
+  }
+
   if (!today.isSuccess) return null;
   const { totalMl, goalMl, trained, logs } = today.data;
   const left = Math.max(0, goalMl - totalMl);
+  const baseGoal = goalMl - (trained ? TRAINING_DAY_EXTRA_ML : 0);
+  const editingGoal = editing === 'goal';
   const days = dailyTotals(history.data ?? [], HISTORY_DAYS, now);
 
   return (
@@ -78,9 +100,24 @@ export default function WaterScreen() {
           {left === 0 ? 'Goal reached. Reminders are done for today.' : `${left} ml to go`}
         </Text>
         <Text style={[typography.caption, { color: colors.textMuted }]}>
-          35 ml per kg{trained ? ', plus 500 ml for today’s workout' : ''}.
+          {ownGoal === null ? '35 ml per kg' : 'Your own goal'}
+          {trained ? ', plus 500 ml for today’s workout' : ''}.
         </Text>
       </View>
+
+      <Button label="Change daily goal" variant="ghost" onPress={() => setEditing('goal')} />
+      {ownGoal !== null ? (
+        <Button
+          label="Use recommended goal"
+          variant="ghost"
+          onPress={() => void changeGoal(null)}
+        />
+      ) : null}
+      {goalError ? (
+        <Text accessibilityRole="alert" style={[typography.body, { color: colors.danger }]}>
+          {goalError}
+        </Text>
+      ) : null}
 
       <View style={[styles.row, { gap: spacing.sm }]}>
         {cups.map((ml, index) => (
@@ -166,12 +203,21 @@ export default function WaterScreen() {
 
       <PromptDialog
         visible={editing !== null}
-        title={editing === 'custom' ? 'Add water' : 'Change cup size'}
-        label="Amount (ml)"
-        initialValue={typeof editing === 'number' ? String(cups[editing] ?? '') : ''}
+        title={
+          editingGoal ? 'Daily water goal' : editing === 'custom' ? 'Add water' : 'Change cup size'
+        }
+        label={editingGoal ? 'Goal (ml)' : 'Amount (ml)'}
+        initialValue={
+          editingGoal
+            ? String(baseGoal)
+            : typeof editing === 'number'
+              ? String(cups[editing] ?? '')
+              : ''
+        }
         confirmLabel={editing === 'custom' ? 'Add' : 'Save'}
-        maxLength={4}
-        onSubmit={submitCup}
+        maxLength={editingGoal ? 5 : 4}
+        emptyMessage="Enter an amount"
+        onSubmit={editingGoal ? submitGoal : submitCup}
         onClose={() => setEditing(null)}
       />
     </ScrollView>

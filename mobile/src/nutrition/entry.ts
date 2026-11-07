@@ -1,4 +1,4 @@
-import type { FoodLog, Per100g, Serving } from '@/api/types';
+import type { FoodLog, Per100g, Serving, TargetsUpdate } from '@/api/types';
 import { logAmounts, type Amounts, type MacroOverride } from '@/lib/macros';
 
 import type { FoodFields } from './actions';
@@ -177,4 +177,36 @@ export function readCustomFood(
       servings,
     },
   };
+}
+
+// --- daily targets --------------------------------------------------------------------------
+
+export interface TargetsForm {
+  kcal: string;
+  protein: string;
+  carbs: string;
+  fat: string;
+}
+
+export type TargetsErrors = Partial<Record<keyof TargetsForm, string>>;
+
+/** The server's limits; it also refuses calories below the user's own safe minimum. */
+export function readTargets(
+  form: TargetsForm,
+): { fields: TargetsUpdate; errors: null } | { fields: null; errors: TargetsErrors } {
+  const errors: TargetsErrors = {};
+  const whole = (key: keyof TargetsForm, min: number, max: number) => {
+    const value = parseNumber(form[key]);
+    if (value === null || !Number.isInteger(value) || value < min || value > max) {
+      errors[key] = `Use a whole number from ${min} to ${max}`;
+    }
+    return value ?? 0;
+  };
+  const fields = {
+    kcal: whole('kcal', 500, 10_000),
+    protein_g: whole('protein', 0, 1000),
+    carbs_g: whole('carbs', 0, 2000),
+    fat_g: whole('fat', 0, 1000),
+  };
+  return Object.keys(errors).length > 0 ? { fields: null, errors } : { fields, errors: null };
 }

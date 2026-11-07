@@ -68,6 +68,18 @@ export function fillFromPrevious(set: WorkoutSet, prev: PreviousSet | undefined)
   };
 }
 
+/** The weight to load next, in the user's unit: the first unticked set's, or last session's. */
+export function nextLoad(
+  sets: readonly WorkoutSet[],
+  previous: readonly PreviousSet[] | undefined,
+  unit: WeightUnit,
+): number | null {
+  const unticked = sets.findIndex((set) => !set.completed);
+  const index = unticked === -1 ? sets.length - 1 : unticked;
+  const kg = sets[index]?.weightKg ?? previous?.[index]?.weightKg ?? null;
+  return kg === null ? null : displayWeight(kg, unit);
+}
+
 /** "Set 2", "Warm-up set", "Drop set", "Failure set" from a set-column label. */
 export function describeSet(label: string): string {
   if (label === 'W') return 'Warm-up set';

@@ -72,6 +72,7 @@ export function makeMe(overrides: Partial<Me> = {}): Me {
       wake_time: '07:00:00',
       sleep_time: '22:00:00',
       reminders_enabled: false,
+      meal_plan: [],
     },
     ...overrides,
   };

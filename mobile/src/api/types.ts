@@ -52,6 +52,13 @@ export interface Profile {
   onboarding_completed_at: string | null;
 }
 
+/** A meal to plan the day around. Food logs don't point at these. */
+export interface PlannedMeal {
+  name: string;
+  /** HH:MM, 24-hour */
+  time: string;
+}
+
 export interface Settings {
   theme: ThemePreference;
   default_rest_s: number;
@@ -63,6 +70,7 @@ export interface Settings {
   wake_time: string;
   sleep_time: string;
   reminders_enabled: boolean;
+  meal_plan: PlannedMeal[];
 }
 
 export interface Me extends User {
@@ -574,6 +582,9 @@ export interface NutritionTargets {
   fat_g: number;
   reason: TargetReason;
 }
+
+/** POST body for the user's own targets: whole numbers (docs/api.md § Nutrition targets). */
+export type TargetsUpdate = Pick<NutritionTargets, 'kcal' | 'protein_g' | 'carbs_g' | 'fat_g'>;
 
 // --- AI drafts (docs/api.md § Food photos) ------------------------------------------------
 

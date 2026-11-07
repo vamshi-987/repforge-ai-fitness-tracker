@@ -4,7 +4,7 @@ import * as nutritionApi from '@/api/nutrition';
 import type { Food, NutritionTargets } from '@/api/types';
 
 import type { NutritionRepo } from './repo';
-import { byMeal, frequentFoods, mergeFoods, recentFoods, totals } from './rules';
+import { frequentFoods, mergeFoods, recentFoods, totals } from './rules';
 import { sqliteNutritionRepo } from './sqliteRepo';
 
 export const nutritionRepo: NutritionRepo = sqliteNutritionRepo;
@@ -16,14 +16,14 @@ const RECENT_LOGS = 300;
 
 const local = { staleTime: Infinity, networkMode: 'always' } as const;
 
-/** One day's logs by meal, with totals, from the device (offline). */
+/** One day's logs with totals, from the device (offline). */
 export function useNutritionDay(day: string) {
   return useQuery({
     ...local,
     queryKey: [...NUTRITION_QUERY_KEY, 'day', day],
     queryFn: async () => {
       const logs = await nutritionRepo.logsOn(day);
-      return { logs, meals: byMeal(logs), totals: totals(logs) };
+      return { logs, totals: totals(logs) };
     },
   });
 }

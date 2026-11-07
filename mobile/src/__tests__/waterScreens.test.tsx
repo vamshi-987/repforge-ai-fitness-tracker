@@ -23,7 +23,10 @@ jest.mock('@/workout/sqliteHistory', () => {
     jest.requireActual<typeof import('@/workout/history')>('@/workout/history');
   return { sqliteHistoryRepo: createMemoryHistoryRepo() };
 });
-jest.mock('@/settings/actions', () => ({ saveSettings: jest.fn(async () => true) }));
+jest.mock('@/settings/actions', () => ({
+  saveSettings: jest.fn(async () => true),
+  saveWaterGoal: jest.fn(async () => true),
+}));
 
 const water = jest.requireMock<{ sqliteWaterRepo: WaterRepo }>(
   '@/water/sqliteRepo',
@@ -32,7 +35,9 @@ const outbox = jest.requireMock<{ sqliteOutbox: OutboxRepo & { items: OutboxItem
   '@/sync/sqliteOutbox',
 ).sqliteOutbox;
 const notifier = jest.requireMock<{ replaceWaterReminders: jest.Mock }>('@/notifications/notifier');
-const settingsActions = jest.requireMock<{ saveSettings: jest.Mock }>('@/settings/actions');
+const settingsActions = jest.requireMock<{ saveSettings: jest.Mock; saveWaterGoal: jest.Mock }>(
+  '@/settings/actions',
+);
 const expoRouter = jest.requireMock<{ router: { push: jest.Mock } }>('expo-router');
 
 function signIn() {
@@ -127,6 +132,54 @@ describe('Water', () => {
         water_cup_sizes: [300, 500, 750],
       }),
     );
+  });
+
+  it('sets your own daily goal and plans the reminders again', async () => {
+    await show(<WaterScreen />);
+
+    await fireEvent.press(await screen.findByLabelText('Change daily goal'));
+    expect(screen.getByLabelText('Goal (ml)')).toHaveProp('value', '2100');
+    await fireEvent.changeText(screen.getByLabelText('Goal (ml)'), '3200');
+    await fireEvent.press(screen.getByLabelText('Save'));
+
+    await waitFor(() => expect(settingsActions.saveWaterGoal).toHaveBeenCalledWith(3200));
+    await waitFor(() => expect(notifier.replaceWaterReminders).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByLabelText('Goal (ml)')).toBeNull());
+  });
+
+  it('refuses a goal out of range, and keeps the dialog open when saving fails', async () => {
+    await show(<WaterScreen />);
+
+    await fireEvent.press(await screen.findByLabelText('Change daily goal'));
+    await fireEvent.changeText(screen.getByLabelText('Goal (ml)'), '100');
+    await fireEvent.press(screen.getByLabelText('Save'));
+    expect(await screen.findByText(/500–10000 ml/)).toBeOnTheScreen();
+    expect(settingsActions.saveWaterGoal).not.toHaveBeenCalled();
+
+    settingsActions.saveWaterGoal.mockResolvedValueOnce(false);
+    await fireEvent.changeText(screen.getByLabelText('Goal (ml)'), '3000');
+    await fireEvent.press(screen.getByLabelText('Save'));
+    expect(await screen.findByText(/Couldn’t save your goal/)).toBeOnTheScreen();
+    expect(screen.getByLabelText('Goal (ml)')).toBeOnTheScreen();
+  });
+
+  it('shows your own goal, and goes back to the recommended one', async () => {
+    const me = useAuth.getState().me!;
+    useAuth.setState({ me: { ...me, profile: { ...me.profile, water_goal_ml: 3000 } } });
+    await show(<WaterScreen />);
+
+    expect(await screen.findByLabelText('Water today: 0 of 3000 ml')).toBeOnTheScreen();
+    expect(screen.getByText(/Your own goal/)).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByLabelText('Use recommended goal'));
+    await waitFor(() => expect(settingsActions.saveWaterGoal).toHaveBeenCalledWith(null));
+  });
+
+  it('offers no reset while the goal is the recommended one', async () => {
+    await show(<WaterScreen />);
+
+    expect(await screen.findByLabelText('Change daily goal')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Use recommended goal')).toBeNull();
   });
 
   it('refuses an implausible amount', async () => {

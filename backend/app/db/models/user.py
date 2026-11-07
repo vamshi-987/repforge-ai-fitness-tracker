@@ -17,6 +17,7 @@ from sqlalchemy import (
     text,
     true,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -149,3 +150,7 @@ class UserSettings(TimestampMixin, Base):
         Time, default=time(22, 0), server_default=text("'22:00'")
     )
     reminders_enabled: Mapped[bool] = mapped_column(default=False, server_default=false())
+    # {"name", "time"} per meal: for planning only, food logs don't point at these.
+    meal_plan: Mapped[list[dict[str, str]]] = mapped_column(
+        JSONB, default=list, server_default=text("'[]'")
+    )

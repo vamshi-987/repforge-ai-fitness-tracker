@@ -22,7 +22,7 @@ import {
 } from '@/nutrition/actions';
 import { useTextDraft } from '@/nutrition/draft';
 import { prepareFoodPhoto } from '@/nutrition/photo';
-import { dayKey, formatAmount, MEAL_LABELS, mealAt, type RecentFood } from '@/nutrition/rules';
+import { dayKey, formatAmount, mealAt, type RecentFood } from '@/nutrition/rules';
 import {
   NUTRITION_QUERY_KEY,
   SEARCH_MIN_CHARS,
@@ -240,7 +240,7 @@ function SavedTab({ target }: { target: Target }) {
       ))}
       {meals.isSuccess && meals.data.length === 0 ? (
         <Text style={[typography.body, { color: colors.textMuted }]}>
-          Save a meal from its ⋯ menu to log it again in one tap.
+          Save what you&apos;ve logged from its ⋯ menu to log it again in one tap.
         </Text>
       ) : null}
     </View>
@@ -388,9 +388,7 @@ export default function AddFoodScreen() {
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
     >
-      <Text style={[typography.caption, { color: colors.textMuted }]}>
-        Adding to {MEAL_LABELS[target.meal]}, {target.date}
-      </Text>
+      <Text style={[typography.caption, { color: colors.textMuted }]}>Adding to {target.date}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={[styles.row, { gap: spacing.xs }]}>
           {TABS.map((name) => (

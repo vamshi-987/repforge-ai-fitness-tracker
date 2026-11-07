@@ -8,6 +8,7 @@ import {
   fillFromPrevious,
   formatPrevious,
   metersToDistance,
+  nextLoad,
 } from '../setValues';
 
 const KG = { weight: 'kg', length: 'cm' } as const;
@@ -102,5 +103,33 @@ describe('bestSetLabel', () => {
     expect(bestSetLabel(pushups, KG)).toBe('Best: × 25');
     expect(bestSetLabel(plank, KG)).toBe('Best: 1:30');
     expect(bestSetLabel(makeWorkoutExercise({ sets: [] }), KG)).toBeNull();
+  });
+});
+
+describe('nextLoad', () => {
+  const previous = [{ weightKg: 60 }, { weightKg: 70 }] as PreviousSet[];
+
+  it('takes the first unticked set', () => {
+    const sets = [
+      makeSet({ weightKg: 40, completed: true }),
+      makeSet({ weightKg: 102.5 }),
+      makeSet({ weightKg: 50 }),
+    ];
+    expect(nextLoad(sets, undefined, 'kg')).toBe(102.5);
+  });
+
+  it('falls back to last session for that set', () => {
+    const sets = [makeSet({ weightKg: 40, completed: true }), makeSet({ weightKg: null })];
+    expect(nextLoad(sets, previous, 'kg')).toBe(70);
+  });
+
+  it('uses the last set once all are ticked, in the user’s unit', () => {
+    const sets = [makeSet({ weightKg: 100, completed: true })];
+    expect(nextLoad(sets, undefined, 'lb')).toBe(220.5);
+  });
+
+  it('is empty with nothing to go on', () => {
+    expect(nextLoad([], undefined, 'kg')).toBeNull();
+    expect(nextLoad([makeSet({ weightKg: null })], undefined, 'kg')).toBeNull();
   });
 });

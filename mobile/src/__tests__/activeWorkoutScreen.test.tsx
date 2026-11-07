@@ -13,7 +13,7 @@ import { makeExercise } from '@/test/library';
 import { makeRoutine } from '@/test/routines';
 import { makeSet, makeWorkoutExercise } from '@/test/workouts';
 import type { HistoryRepo, SavedWorkout } from '@/workout/history';
-import { startEmpty, startFromRoutine } from '@/workout/model';
+import { addExercises, startEmpty, startFromRoutine } from '@/workout/model';
 import type { ActiveWorkout } from '@/workout/types';
 
 import ActiveWorkoutScreen from '../../app/(tabs)/workout/active';
@@ -205,6 +205,27 @@ describe('Active workout screen', () => {
     await fireEvent.press(screen.getByLabelText(`Complete ${BENCH} warm-up set`));
 
     expect(firstSets()[0]).toMatchObject({ weightKg: 40, reps: 10, completed: true });
+  });
+
+  it('opens the plate calculator with the weight of the set you’re on', async () => {
+    begin(routineWorkout());
+    await show(<ActiveWorkoutScreen />);
+
+    await fireEvent.press(await screen.findByLabelText(`${BENCH} plate calculator`));
+
+    expect(expoRouter.router.push).toHaveBeenCalledWith({
+      pathname: '/tools/plates',
+      params: { weight: '40' },
+    });
+  });
+
+  it('offers no plate calculator for a bodyweight exercise', async () => {
+    let n = 0;
+    begin(addExercises(routineWorkout(), [PUSH_UP], () => `added-${++n}`));
+    await show(<ActiveWorkoutScreen />);
+
+    expect(await screen.findByLabelText(`${BENCH} plate calculator`)).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Push-Up plate calculator')).toBeNull();
   });
 
   it('copies last session into a set from the Previous column', async () => {

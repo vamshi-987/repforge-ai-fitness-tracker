@@ -1,10 +1,17 @@
 COMPOSE ?= docker compose
 
-.PHONY: env up down nuke logs ps migrate seed backend-venv backend-lint backend-test backend-check \
-        backend-test-integration mobile-install mobile-check mobile-start check
+.PHONY: setup env mobile-env up down nuke logs ps migrate seed backend-venv backend-lint backend-test \
+        backend-check backend-test-integration mobile-install mobile-check mobile-start check
+
+# First command after a fresh clone: env files, backend/.venv and mobile packages. Safe to repeat.
+setup: env mobile-env backend-venv mobile-install
+	@echo "Setup done. Next: make up && make migrate && make seed"
 
 env:
 	@test -f .env || (cp .env.example .env && echo "created .env from .env.example")
+
+mobile-env:
+	@test -f mobile/.env.local || (cp mobile/.env.example mobile/.env.local && echo "created mobile/.env.local from mobile/.env.example")
 
 ## Docker stack ---------------------------------------------------------------
 up: env

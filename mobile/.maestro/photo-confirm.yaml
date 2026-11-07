@@ -3,7 +3,7 @@ appId: app.repforge.mobile
 ---
 - runFlow: _login.yaml
 - tapOn: Nutrition
-- tapOn: Add to Lunch
+- tapOn: Add food
 - tapOn: Photo
 - tapOn: Choose a photo
 # The system picker differs per device: pick the first photo.
@@ -12,5 +12,5 @@ appId: app.repforge.mobile
 - extendedWaitUntil:
     visible: Check each item. Nothing is logged until you confirm.
     timeout: 60000
-- tapOn: Add .* kcal to Lunch
+- tapOn: Add .* kcal
 - assertVisible: Nutrition
