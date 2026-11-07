@@ -32,11 +32,12 @@ These ports are not the defaults (8000, 5432, 6379, 9000) because other local pr
 - **Expo Go** on your phone, latest version (the app uses Expo SDK 58).
 - Optional: `gh auth login` so you can push to GitHub.
 
-### 1.2 Configure
+### 1.2 Install and configure
 ```bash
-cp .env.example .env                    # backend + docker config (make up also does this)
-cp mobile/.env.example mobile/.env.local
+make setup    # creates .env and mobile/.env.local, backend/.venv with all Python deps (never global), and mobile packages
 ```
+Safe to repeat. Backend commands such as `make backend-check` also create `backend/.venv` if it's missing, and reinstall when `backend/pyproject.toml` changes.
+
 Edit `mobile/.env.local` and set your Mac's LAN IP so a phone can reach the API:
 ```bash
 ipconfig getifaddr en0                  # e.g. 192.168.0.121
@@ -53,13 +54,7 @@ make seed       # loads the exercise library (422 exercises, 20 muscles, 14 equi
 make ps         # all services "healthy"; s3-init "Exited (0)" is expected
 ```
 
-### 1.4 Local dev tools (for lint, tests and new migrations)
-```bash
-make backend-venv     # creates backend/.venv and installs all Python deps there (never global)
-make mobile-install   # pnpm install in mobile/
-```
-
-### 1.5 Verify everything
+### 1.4 Verify everything
 ```bash
 curl localhost:8010/v1/health          # {"status":"ok","version":"0.1.0"}
 curl localhost:8010/v1/health/ready    # database ok, redis ok
@@ -246,7 +241,7 @@ curl -s -XPOST localhost:8010/v1/auth/register -H 'content-type: application/jso
 | App shows **"API unreachable"** | Phone on the same Wi-Fi? Correct LAN IP in `mobile/.env.local`? Restart with `pnpm start --clear`. Open `http://<LAN-IP>:8010/v1/health` in the phone's browser; if that fails, allow Docker in the macOS firewall |
 | Expo Go says the SDK version is unsupported | Update Expo Go from the store |
 | `pnpm lint` fails on `tsconfig.json` after `expo start` | Expo rewrote the file. Run `cd mobile && pnpm prettier --write tsconfig.json` |
-| `make backend-venv` can't find `python3.12` | `pyenv install 3.12.3`, or `make backend-venv PYTHON=/path/to/python3.12` |
+| `make setup` says Python 3.12 is required | `pyenv install 3.12.3`, or `make setup PYTHON=/path/to/python3.12` |
 | Integration tests skip with "TEST_DATABASE_URL is not set" | `.env` is missing. Run `cp .env.example .env` |
 | `make check` fails with connection errors to `localhost:5442` | The backend tests need the stack: run `make up` first |
 | App says **"Too many attempts. Try again in N min."** | The login rate limit tripped. Wait, or clear it (see *Auth in development*) |

@@ -32,17 +32,15 @@ docs/      GETTING_STARTED.md, api.md, architecture.md, RUNBOOK.md
 Full first-time setup, daily start, and what to run after each kind of change: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ```bash
-cp .env.example .env
+make setup         # env files, backend/.venv with its deps, mobile packages (safe to repeat)
 make up            # postgres, redis, s3 (SeaweedFS), api, worker, beat
 make migrate       # run Alembic migrations inside the api container
 make seed          # load the exercise library (idempotent)
 curl localhost:8010/v1/health
 
-make backend-venv  # create backend/.venv and install deps (for local lint/test)
 make backend-check # ruff + mypy + pytest (unit + integration: needs `make up`)
 
-make mobile-install
-cp mobile/.env.example mobile/.env.local   # set EXPO_PUBLIC_API_URL
+# set EXPO_PUBLIC_API_URL in mobile/.env.local
 make mobile-check  # eslint + prettier + tsc + jest
 make mobile-start  # scan the QR code with Expo Go
 
