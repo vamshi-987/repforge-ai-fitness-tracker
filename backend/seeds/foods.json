@@ -1,0 +1,1237 @@
+[
+ {
+  "fdc_id": 170567,
+  "name": "Almonds",
+  "usda_description": "Nuts, almonds",
+  "kcal_100g": 579.0,
+  "protein_100g": 21.15,
+  "carbs_100g": 21.55,
+  "fat_100g": 49.93,
+  "fiber_100g": 12.5,
+  "servings": [
+   {
+    "label": "1 cup, whole",
+    "grams": 143.0
+   },
+   {
+    "label": "1 cup, sliced",
+    "grams": 92.0
+   },
+   {
+    "label": "1 cup, slivered",
+    "grams": 108.0
+   },
+   {
+    "label": "1 cup, ground",
+    "grams": 95.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171688,
+  "name": "Apple, with skin",
+  "usda_description": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",
+  "kcal_100g": 52.0,
+  "protein_100g": 0.26,
+  "carbs_100g": 13.81,
+  "fat_100g": 0.17,
+  "fiber_100g": 2.4,
+  "servings": [
+   {
+    "label": "1 cup, quartered or chopped",
+    "grams": 125.0
+   },
+   {
+    "label": "1 cup slices",
+    "grams": 109.0
+   },
+   {
+    "label": "1 large (3-1/4\" dia)",
+    "grams": 223.0
+   },
+   {
+    "label": "1 medium (3\" dia)",
+    "grams": 182.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171705,
+  "name": "Avocado",
+  "usda_description": "Avocados, raw, all commercial varieties",
+  "kcal_100g": 160.0,
+  "protein_100g": 2.0,
+  "carbs_100g": 8.53,
+  "fat_100g": 14.66,
+  "fiber_100g": 6.7,
+  "servings": [
+   {
+    "label": "1 cup, cubes",
+    "grams": 150.0
+   },
+   {
+    "label": "1 cup, pureed",
+    "grams": 230.0
+   },
+   {
+    "label": "1 cup, sliced",
+    "grams": 146.0
+   },
+   {
+    "label": "1 avocado, NS as to Florida or California",
+    "grams": 201.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 173944,
+  "name": "Banana",
+  "usda_description": "Bananas, raw",
+  "kcal_100g": 89.0,
+  "protein_100g": 1.09,
+  "carbs_100g": 22.84,
+  "fat_100g": 0.33,
+  "fiber_100g": 2.6,
+  "servings": [
+   {
+    "label": "1 cup, mashed",
+    "grams": 225.0
+   },
+   {
+    "label": "1 cup, sliced",
+    "grams": 150.0
+   },
+   {
+    "label": "1 extra small (less than 6\" long)",
+    "grams": 81.0
+   },
+   {
+    "label": "1 small (6\" to 6-7/8\" long)",
+    "grams": 101.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 169967,
+  "name": "Broccoli, boiled",
+  "usda_description": "Broccoli, cooked, boiled, drained, without salt",
+  "kcal_100g": 35.0,
+  "protein_100g": 2.38,
+  "carbs_100g": 7.18,
+  "fat_100g": 0.41,
+  "fiber_100g": 3.3,
+  "servings": [
+   {
+    "label": "0.5 cup, chopped",
+    "grams": 78.0
+   },
+   {
+    "label": "1 stalk, large (11\"-12\" long)",
+    "grams": 280.0
+   },
+   {
+    "label": "1 stalk, medium (7-1/2\" - 8\" long)",
+    "grams": 180.0
+   },
+   {
+    "label": "1 stalk, small (5\" long)",
+    "grams": 140.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 169704,
+  "name": "Brown rice, cooked",
+  "usda_description": "Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)",
+  "kcal_100g": 123.0,
+  "protein_100g": 2.74,
+  "carbs_100g": 25.58,
+  "fat_100g": 0.97,
+  "fiber_100g": 1.6,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 202.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2707416,
+  "name": "Chana (chickpeas), cooked",
+  "usda_description": "Chickpeas, from dried, no added fat",
+  "kcal_100g": 163.0,
+  "protein_100g": 8.81,
+  "carbs_100g": 27.26,
+  "fat_100g": 2.58,
+  "fiber_100g": 7.6,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 180.0
+   },
+   {
+    "label": "1 pea",
+    "grams": 2.0
+   },
+   {
+    "label": "1 oz dry, yield after cooking",
+    "grams": 70.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2705709,
+  "name": "Cheddar cheese",
+  "usda_description": "Cheese, Cheddar",
+  "kcal_100g": 409.0,
+  "protein_100g": 23.3,
+  "carbs_100g": 2.44,
+  "fat_100g": 34.0,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 cup, cubed",
+    "grams": 132.0
+   },
+   {
+    "label": "1 cubic inch",
+    "grams": 17.0
+   },
+   {
+    "label": "1 slice",
+    "grams": 21.0
+   },
+   {
+    "label": "1 cup, melted",
+    "grams": 244.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2706538,
+  "name": "Chicken biryani",
+  "usda_description": "Biryani with chicken",
+  "kcal_100g": 104.0,
+  "protein_100g": 7.15,
+  "carbs_100g": 13.55,
+  "fat_100g": 2.38,
+  "fiber_100g": 1.1,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 196.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171477,
+  "name": "Chicken breast, roasted",
+  "usda_description": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+  "kcal_100g": 165.0,
+  "protein_100g": 31.02,
+  "carbs_100g": 0.0,
+  "fat_100g": 3.57,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 cup, chopped or diced",
+    "grams": 140.0
+   },
+   {
+    "label": "1 unit (yield from 1 lb ready-to-cook chicken)",
+    "grams": 52.0
+   },
+   {
+    "label": "0.5 breast, bone and skin removed",
+    "grams": 86.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2706437,
+  "name": "Chicken curry",
+  "usda_description": "Chicken curry",
+  "kcal_100g": 107.0,
+  "protein_100g": 6.48,
+  "carbs_100g": 6.54,
+  "fat_100g": 6.48,
+  "fiber_100g": 1.4,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 240.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 173757,
+  "name": "Chickpeas, boiled",
+  "usda_description": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+  "kcal_100g": 164.0,
+  "protein_100g": 8.86,
+  "carbs_100g": 27.42,
+  "fat_100g": 2.59,
+  "fiber_100g": 7.6,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 164.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171890,
+  "name": "Coffee, brewed",
+  "usda_description": "Beverages, coffee, brewed, prepared with tap water",
+  "kcal_100g": 1.0,
+  "protein_100g": 0.12,
+  "carbs_100g": 0.0,
+  "fat_100g": 0.02,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 fl oz",
+    "grams": 29.6
+   },
+   {
+    "label": "6 fl oz",
+    "grams": 178.0
+   },
+   {
+    "label": "1 cup (8 fl oz)",
+    "grams": 237.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 172182,
+  "name": "Cottage cheese, 2% fat",
+  "usda_description": "Cheese, cottage, lowfat, 2% milkfat",
+  "kcal_100g": 81.0,
+  "protein_100g": 10.45,
+  "carbs_100g": 4.76,
+  "fat_100g": 2.27,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "4 oz",
+    "grams": 113.0
+   },
+   {
+    "label": "1 cup (not packed)",
+    "grams": 226.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171284,
+  "name": "Curd / plain yogurt, whole milk",
+  "usda_description": "Yogurt, plain, whole milk",
+  "kcal_100g": 61.0,
+  "protein_100g": 3.47,
+  "carbs_100g": 4.66,
+  "fat_100g": 3.25,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 container (6 oz)",
+    "grams": 170.0
+   },
+   {
+    "label": "1 container (8 oz)",
+    "grams": 227.0
+   },
+   {
+    "label": "0.5 container (4 oz)",
+    "grams": 113.0
+   },
+   {
+    "label": "1 cup (8 fl oz)",
+    "grams": 245.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2707427,
+  "name": "Dal",
+  "usda_description": "Dal",
+  "kcal_100g": 145.0,
+  "protein_100g": 8.6,
+  "carbs_100g": 19.17,
+  "fat_100g": 4.31,
+  "fiber_100g": 7.5,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 240.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2708347,
+  "name": "Dosa, plain",
+  "usda_description": "Dosa, plain",
+  "kcal_100g": 210.0,
+  "protein_100g": 5.7,
+  "carbs_100g": 37.04,
+  "fat_100g": 4.05,
+  "fiber_100g": 1.8,
+  "servings": [
+   {
+    "label": "1 small",
+    "grams": 35.0
+   },
+   {
+    "label": "1 medium",
+    "grams": 80.0
+   },
+   {
+    "label": "1 surface inch",
+    "grams": 1.0
+   },
+   {
+    "label": "1 large",
+    "grams": 155.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 173424,
+  "name": "Egg, hard-boiled",
+  "usda_description": "Egg, whole, cooked, hard-boiled",
+  "kcal_100g": 155.0,
+  "protein_100g": 12.58,
+  "carbs_100g": 1.12,
+  "fat_100g": 10.61,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 cup, chopped",
+    "grams": 136.0
+   },
+   {
+    "label": "1 tbsp",
+    "grams": 8.5
+   },
+   {
+    "label": "1 large",
+    "grams": 50.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171287,
+  "name": "Egg, whole, raw",
+  "usda_description": "Egg, whole, raw, fresh",
+  "kcal_100g": 143.0,
+  "protein_100g": 12.56,
+  "carbs_100g": 0.72,
+  "fat_100g": 9.51,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 large",
+    "grams": 50.0
+   },
+   {
+    "label": "1 extra large",
+    "grams": 56.0
+   },
+   {
+    "label": "1 jumbo",
+    "grams": 63.0
+   },
+   {
+    "label": "1 cup (4.86 large eggs)",
+    "grams": 243.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171314,
+  "name": "Ghee",
+  "usda_description": "Butter, Clarified butter (ghee)",
+  "kcal_100g": 900.0,
+  "protein_100g": 0.0,
+  "carbs_100g": 0.0,
+  "fat_100g": 100.0,
+  "fiber_100g": 0.0,
+  "servings": []
+ },
+ {
+  "fdc_id": 170894,
+  "name": "Greek yogurt, plain, nonfat",
+  "usda_description": "Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)",
+  "kcal_100g": 59.0,
+  "protein_100g": 10.19,
+  "carbs_100g": 3.6,
+  "fat_100g": 0.39,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 container",
+    "grams": 170.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 174032,
+  "name": "Ground beef 85% lean, cooked",
+  "usda_description": "Beef, ground, 85% lean meat / 15% fat, patty, cooked, broiled",
+  "kcal_100g": 250.0,
+  "protein_100g": 25.93,
+  "carbs_100g": 0.0,
+  "fat_100g": 15.41,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "3 oz",
+    "grams": 85.0
+   },
+   {
+    "label": "1 patty (yield from 1/4 lb raw meat)",
+    "grams": 77.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2708346,
+  "name": "Idli",
+  "usda_description": "Idli",
+  "kcal_100g": 128.0,
+  "protein_100g": 6.36,
+  "carbs_100g": 24.98,
+  "fat_100g": 0.35,
+  "fiber_100g": 5.8,
+  "servings": [
+   {
+    "label": "1 item",
+    "grams": 38.0
+   },
+   {
+    "label": "1 surface inch",
+    "grams": 9.8
+   }
+  ]
+ },
+ {
+  "fdc_id": 2707431,
+  "name": "Lentil curry",
+  "usda_description": "Lentil curry",
+  "kcal_100g": 111.0,
+  "protein_100g": 3.68,
+  "carbs_100g": 12.33,
+  "fat_100g": 5.65,
+  "fiber_100g": 3.4,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 240.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 172421,
+  "name": "Lentils, boiled",
+  "usda_description": "Lentils, mature seeds, cooked, boiled, without salt",
+  "kcal_100g": 116.0,
+  "protein_100g": 9.02,
+  "carbs_100g": 20.13,
+  "fat_100g": 0.38,
+  "fiber_100g": 7.9,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 198.0
+   },
+   {
+    "label": "1 tbsp",
+    "grams": 12.3
+   }
+  ]
+ },
+ {
+  "fdc_id": 169910,
+  "name": "Mango",
+  "usda_description": "Mangos, raw",
+  "kcal_100g": 60.0,
+  "protein_100g": 0.82,
+  "carbs_100g": 14.98,
+  "fat_100g": 0.38,
+  "fiber_100g": 1.6,
+  "servings": [
+   {
+    "label": "1 cup pieces",
+    "grams": 165.0
+   },
+   {
+    "label": "1 fruit without refuse",
+    "grams": 336.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2709129,
+  "name": "Masala dosa",
+  "usda_description": "Dosa, with filling",
+  "kcal_100g": 184.0,
+  "protein_100g": 5.46,
+  "carbs_100g": 30.8,
+  "fat_100g": 4.27,
+  "fiber_100g": 2.2,
+  "servings": [
+   {
+    "label": "1 large",
+    "grams": 523.0
+   },
+   {
+    "label": "1 medium",
+    "grams": 267.0
+   },
+   {
+    "label": "1 surface inch",
+    "grams": 3.4
+   },
+   {
+    "label": "1 small",
+    "grams": 113.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171267,
+  "name": "Milk, 2% fat",
+  "usda_description": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
+  "kcal_100g": 50.0,
+  "protein_100g": 3.3,
+  "carbs_100g": 4.8,
+  "fat_100g": 1.98,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 244.0
+   },
+   {
+    "label": "1 fl oz",
+    "grams": 30.5
+   },
+   {
+    "label": "1 quart",
+    "grams": 976.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171265,
+  "name": "Milk, whole",
+  "usda_description": "Milk, whole, 3.25% milkfat, with added vitamin D",
+  "kcal_100g": 61.0,
+  "protein_100g": 3.15,
+  "carbs_100g": 4.8,
+  "fat_100g": 3.25,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 244.0
+   },
+   {
+    "label": "1 fl oz",
+    "grams": 30.5
+   },
+   {
+    "label": "1 tbsp",
+    "grams": 15.0
+   },
+   {
+    "label": "1 quart",
+    "grams": 976.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2707613,
+  "name": "Naan",
+  "usda_description": "Bread, naan",
+  "kcal_100g": 311.0,
+  "protein_100g": 11.09,
+  "carbs_100g": 50.23,
+  "fat_100g": 7.28,
+  "fiber_100g": 5.2,
+  "servings": [
+   {
+    "label": "1 piece (1/4 of 10\" dia)",
+    "grams": 44.0
+   },
+   {
+    "label": "1 surface inch",
+    "grams": 2.4
+   },
+   {
+    "label": "1 Naan (10\" dia)",
+    "grams": 177.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 173904,
+  "name": "Oats, dry",
+  "usda_description": "Cereals, oats, regular and quick, not fortified, dry",
+  "kcal_100g": 379.0,
+  "protein_100g": 13.15,
+  "carbs_100g": 67.7,
+  "fat_100g": 6.52,
+  "fiber_100g": 10.1,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 81.0
+   },
+   {
+    "label": "0.33 cup",
+    "grams": 27.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171413,
+  "name": "Olive oil",
+  "usda_description": "Oil, olive, salad or cooking",
+  "kcal_100g": 884.0,
+  "protein_100g": 0.0,
+  "carbs_100g": 0.0,
+  "fat_100g": 100.0,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 tablespoon",
+    "grams": 13.5
+   },
+   {
+    "label": "1 cup",
+    "grams": 216.0
+   },
+   {
+    "label": "1 tsp",
+    "grams": 4.5
+   }
+  ]
+ },
+ {
+  "fdc_id": 170000,
+  "name": "Onion",
+  "usda_description": "Onions, raw",
+  "kcal_100g": 40.0,
+  "protein_100g": 1.1,
+  "carbs_100g": 9.34,
+  "fat_100g": 0.1,
+  "fiber_100g": 1.7,
+  "servings": [
+   {
+    "label": "1 cup, chopped",
+    "grams": 160.0
+   },
+   {
+    "label": "1 cup, sliced",
+    "grams": 115.0
+   },
+   {
+    "label": "1 tbsp chopped",
+    "grams": 10.0
+   },
+   {
+    "label": "1 large",
+    "grams": 150.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 169097,
+  "name": "Orange",
+  "usda_description": "Oranges, raw, all commercial varieties",
+  "kcal_100g": 47.0,
+  "protein_100g": 0.94,
+  "carbs_100g": 11.75,
+  "fat_100g": 0.12,
+  "fiber_100g": 2.4,
+  "servings": [
+   {
+    "label": "1 cup, sections",
+    "grams": 180.0
+   },
+   {
+    "label": "1 large (3-1/16\" dia)",
+    "grams": 184.0
+   },
+   {
+    "label": "1 small (2-3/8\" dia)",
+    "grams": 96.0
+   },
+   {
+    "label": "1 fruit (2-5/8\" dia)",
+    "grams": 131.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2710066,
+  "name": "Pakora",
+  "usda_description": "Pakora",
+  "kcal_100g": 125.0,
+  "protein_100g": 4.92,
+  "carbs_100g": 16.24,
+  "fat_100g": 4.77,
+  "fiber_100g": 3.2,
+  "servings": [
+   {
+    "label": "1 pakora",
+    "grams": 12.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2709631,
+  "name": "Palak paneer",
+  "usda_description": "Palak Paneer",
+  "kcal_100g": 101.0,
+  "protein_100g": 5.42,
+  "carbs_100g": 4.28,
+  "fat_100g": 7.02,
+  "fiber_100g": 0.9,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 200.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2705740,
+  "name": "Paneer",
+  "usda_description": "Cheese, paneer",
+  "kcal_100g": 299.0,
+  "protein_100g": 15.86,
+  "carbs_100g": 22.46,
+  "fat_100g": 15.52,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 246.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2707715,
+  "name": "Paratha",
+  "usda_description": "Bread, paratha",
+  "kcal_100g": 326.0,
+  "protein_100g": 6.36,
+  "carbs_100g": 45.35,
+  "fat_100g": 13.2,
+  "fiber_100g": 9.6,
+  "servings": [
+   {
+    "label": "1 paratha",
+    "grams": 70.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 169737,
+  "name": "Pasta, cooked",
+  "usda_description": "Pasta, cooked, enriched, without added salt",
+  "kcal_100g": 158.0,
+  "protein_100g": 5.8,
+  "carbs_100g": 30.86,
+  "fat_100g": 0.93,
+  "fiber_100g": 1.8,
+  "servings": [
+   {
+    "label": "1 cup spaghetti not packed",
+    "grams": 124.0
+   },
+   {
+    "label": "1 cup spaghetti packed",
+    "grams": 151.0
+   },
+   {
+    "label": "1 cup elbows not packed",
+    "grams": 120.0
+   },
+   {
+    "label": "1 cup elbows packed",
+    "grams": 132.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 174266,
+  "name": "Peanut butter",
+  "usda_description": "Peanut butter, smooth style, with salt (Includes foods for USDA's Food Distribution Program)",
+  "kcal_100g": 598.0,
+  "protein_100g": 22.21,
+  "carbs_100g": 22.31,
+  "fat_100g": 51.36,
+  "fiber_100g": 5.0,
+  "servings": [
+   {
+    "label": "2 tbsp",
+    "grams": 32.0
+   },
+   {
+    "label": "1 cup",
+    "grams": 258.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 170440,
+  "name": "Potato, boiled",
+  "usda_description": "Potatoes, boiled, cooked without skin, flesh, without salt",
+  "kcal_100g": 86.0,
+  "protein_100g": 1.71,
+  "carbs_100g": 20.01,
+  "fat_100g": 0.1,
+  "fiber_100g": 1.8,
+  "servings": [
+   {
+    "label": "0.5 cup",
+    "grams": 78.0
+   },
+   {
+    "label": "1 large (3\" to 4-1/4\" dia.)",
+    "grams": 300.0
+   },
+   {
+    "label": "1 medium (2-1/4\" to 3-1/4\" dia.)",
+    "grams": 167.0
+   },
+   {
+    "label": "1 small (1-3/4\" to 2-1/2\" dia.)",
+    "grams": 125.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 175194,
+  "name": "Rajma (kidney beans), boiled",
+  "usda_description": "Beans, kidney, red, mature seeds, cooked, boiled, without salt",
+  "kcal_100g": 127.0,
+  "protein_100g": 8.67,
+  "carbs_100g": 22.8,
+  "fat_100g": 0.5,
+  "fiber_100g": 7.4,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 177.0
+   },
+   {
+    "label": "1 tbsp",
+    "grams": 11.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 171844,
+  "name": "Roti / chapati",
+  "usda_description": "Bread, chapati or roti, plain, commercially prepared",
+  "kcal_100g": 297.0,
+  "protein_100g": 11.25,
+  "carbs_100g": 46.36,
+  "fat_100g": 7.45,
+  "fiber_100g": 4.9,
+  "servings": [
+   {
+    "label": "1 piece",
+    "grams": 68.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 175168,
+  "name": "Salmon, cooked",
+  "usda_description": "Fish, salmon, Atlantic, farmed, cooked, dry heat",
+  "kcal_100g": 206.0,
+  "protein_100g": 22.1,
+  "carbs_100g": 0.0,
+  "fat_100g": 12.35,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "3 oz",
+    "grams": 85.0
+   },
+   {
+    "label": "0.5 fillet",
+    "grams": 178.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2708730,
+  "name": "Samosa",
+  "usda_description": "Samosa",
+  "kcal_100g": 310.0,
+  "protein_100g": 5.14,
+  "carbs_100g": 33.16,
+  "fat_100g": 17.47,
+  "fiber_100g": 1.8,
+  "servings": [
+   {
+    "label": "1 regular/large",
+    "grams": 100.0
+   },
+   {
+    "label": "1 small/individual",
+    "grams": 25.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 168462,
+  "name": "Spinach, raw",
+  "usda_description": "Spinach, raw",
+  "kcal_100g": 23.0,
+  "protein_100g": 2.86,
+  "carbs_100g": 3.63,
+  "fat_100g": 0.39,
+  "fiber_100g": 2.2,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 30.0
+   },
+   {
+    "label": "1 bunch",
+    "grams": 340.0
+   },
+   {
+    "label": "1 leaf",
+    "grams": 10.0
+   },
+   {
+    "label": "1 package (10 oz)",
+    "grams": 284.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 169655,
+  "name": "Sugar",
+  "usda_description": "Sugars, granulated",
+  "kcal_100g": 387.0,
+  "protein_100g": 0.0,
+  "carbs_100g": 99.98,
+  "fat_100g": 0.0,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 serving packet",
+    "grams": 2.8
+   },
+   {
+    "label": "1 tsp",
+    "grams": 4.2
+   },
+   {
+    "label": "1 cup",
+    "grams": 200.0
+   },
+   {
+    "label": "1 serving 1 cube",
+    "grams": 2.3
+   }
+  ]
+ },
+ {
+  "fdc_id": 168483,
+  "name": "Sweet potato, baked",
+  "usda_description": "Sweet potato, cooked, baked in skin, flesh, without salt",
+  "kcal_100g": 90.0,
+  "protein_100g": 2.01,
+  "carbs_100g": 20.71,
+  "fat_100g": 0.15,
+  "fiber_100g": 3.3,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 200.0
+   },
+   {
+    "label": "1 large",
+    "grams": 180.0
+   },
+   {
+    "label": "1 medium (2\" dia, 5\" long, raw)",
+    "grams": 114.0
+   },
+   {
+    "label": "1 small",
+    "grams": 60.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 172475,
+  "name": "Tofu, firm",
+  "usda_description": "Tofu, raw, firm, prepared with calcium sulfate",
+  "kcal_100g": 144.0,
+  "protein_100g": 17.27,
+  "carbs_100g": 2.78,
+  "fat_100g": 8.72,
+  "fiber_100g": 2.3,
+  "servings": [
+   {
+    "label": "0.5 cup",
+    "grams": 126.0
+   },
+   {
+    "label": "0.25 block",
+    "grams": 81.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 170457,
+  "name": "Tomato",
+  "usda_description": "Tomatoes, red, ripe, raw, year round average",
+  "kcal_100g": 18.0,
+  "protein_100g": 0.88,
+  "carbs_100g": 3.89,
+  "fat_100g": 0.2,
+  "fiber_100g": 1.2,
+  "servings": [
+   {
+    "label": "1 cup cherry tomatoes",
+    "grams": 149.0
+   },
+   {
+    "label": "1 cup, chopped or sliced",
+    "grams": 180.0
+   },
+   {
+    "label": "1 Italian tomato",
+    "grams": 62.0
+   },
+   {
+    "label": "1 cherry",
+    "grams": 17.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 173709,
+  "name": "Tuna, canned in water",
+  "usda_description": "Fish, tuna, light, canned in water, drained solids (Includes foods for USDA's Food Distribution Program)",
+  "kcal_100g": 86.0,
+  "protein_100g": 19.44,
+  "carbs_100g": 0.0,
+  "fat_100g": 0.96,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "1 oz",
+    "grams": 28.35
+   },
+   {
+    "label": "3 oz",
+    "grams": 85.0
+   },
+   {
+    "label": "1 can",
+    "grams": 165.0
+   },
+   {
+    "label": "1 cup, solid or chunks",
+    "grams": 154.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2709128,
+  "name": "Upma",
+  "usda_description": "Upma",
+  "kcal_100g": 87.0,
+  "protein_100g": 1.98,
+  "carbs_100g": 13.81,
+  "fat_100g": 2.64,
+  "fiber_100g": 1.3,
+  "servings": [
+   {
+    "label": "1 cup, cooked",
+    "grams": 170.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 2708985,
+  "name": "Vegetable biryani",
+  "usda_description": "Biryani with vegetables",
+  "kcal_100g": 109.0,
+  "protein_100g": 1.93,
+  "carbs_100g": 17.91,
+  "fat_100g": 3.2,
+  "fiber_100g": 1.2,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 172.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 173177,
+  "name": "Whey protein isolate",
+  "usda_description": "Beverages, Whey protein powder isolate",
+  "kcal_100g": 359.0,
+  "protein_100g": 58.14,
+  "carbs_100g": 29.07,
+  "fat_100g": 1.16,
+  "fiber_100g": 0.0,
+  "servings": [
+   {
+    "label": "3 scoop",
+    "grams": 86.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 168878,
+  "name": "White rice, cooked",
+  "usda_description": "Rice, white, long-grain, regular, enriched, cooked",
+  "kcal_100g": 130.0,
+  "protein_100g": 2.69,
+  "carbs_100g": 28.17,
+  "fat_100g": 0.28,
+  "fiber_100g": 0.4,
+  "servings": [
+   {
+    "label": "1 cup",
+    "grams": 158.0
+   }
+  ]
+ },
+ {
+  "fdc_id": 172688,
+  "name": "Whole-wheat bread",
+  "usda_description": "Bread, whole-wheat, commercially prepared",
+  "kcal_100g": 252.0,
+  "protein_100g": 12.45,
+  "carbs_100g": 42.71,
+  "fat_100g": 3.5,
+  "fiber_100g": 6.0,
+  "servings": [
+   {
+    "label": "1 slice",
+    "grams": 32.0
+   },
+   {
+    "label": "1 oz",
+    "grams": 28.35
+   }
+  ]
+ }
+]

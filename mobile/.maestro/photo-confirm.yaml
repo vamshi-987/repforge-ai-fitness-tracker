@@ -1,0 +1,16 @@
+# A food photo becomes a draft, and nothing is logged until it's confirmed.
+appId: app.repforge.mobile
+---
+- runFlow: _login.yaml
+- tapOn: Nutrition
+- tapOn: Add to Lunch
+- tapOn: Photo
+- tapOn: Choose a photo
+# The system picker differs per device: pick the first photo.
+- tapOn:
+    point: 20%,30%
+- extendedWaitUntil:
+    visible: Check each item. Nothing is logged until you confirm.
+    timeout: 60000
+- tapOn: Add .* kcal to Lunch
+- assertVisible: Nutrition

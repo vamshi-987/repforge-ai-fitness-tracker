@@ -1,0 +1,8 @@
+# The weekly report's new targets take effect only when applied.
+appId: app.repforge.mobile
+---
+- runFlow: _login.yaml
+- tapOn: Nutrition
+- tapOn: Weekly report
+- tapOn: Apply new targets
+- assertVisible: Applied

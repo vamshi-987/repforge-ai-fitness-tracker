@@ -1,0 +1,14 @@
+appId: app.repforge.mobile
+---
+- launchApp:
+    clearState: true
+- tapOn: Email
+- inputText: ${EMAIL}
+- tapOn: Password
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: submit
+- extendedWaitUntil:
+    visible: Today at a glance, and what your friends are lifting.
+    timeout: 15000

@@ -1,0 +1,44 @@
+# Fly.io: one image, three process groups.
+app = "repforge-api"
+primary_region = "bom"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  release_command = "alembic upgrade head"
+
+[env]
+  ENVIRONMENT = "prod"
+  LOG_LEVEL = "INFO"
+  S3_REGION = "auto"
+
+[processes]
+  # Behind Fly's proxy, so rate limits see the client's address and not the proxy's.
+  app = "uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=*"
+  worker = "celery -A app.workers.celery_app worker --loglevel INFO --concurrency 2"
+  beat = "celery -A app.workers.celery_app beat --loglevel INFO --schedule /tmp/celerybeat-schedule"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  processes = ["app"]
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/v1/health"
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  processes = ["app", "beat"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+  processes = ["worker"]

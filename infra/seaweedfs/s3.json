@@ -1,0 +1,13 @@
+{
+  "identities": [
+    {
+      "name": "repforge",
+      "credentials": [{ "accessKey": "repforge", "secretKey": "repforge-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    },
+    {
+      "name": "anonymous",
+      "actions": ["Read:media"]
+    }
+  ]
+}

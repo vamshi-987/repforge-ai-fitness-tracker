@@ -1,0 +1,24 @@
+{
+  "muscles": [
+    { "slug": "chest", "name": "Chest", "body_map_key": "chest" },
+    { "slug": "front_delts", "name": "Front Delts", "body_map_key": "front_delts" },
+    { "slug": "side_delts", "name": "Side Delts", "body_map_key": "side_delts" },
+    { "slug": "rear_delts", "name": "Rear Delts", "body_map_key": "rear_delts" },
+    { "slug": "biceps", "name": "Biceps", "body_map_key": "biceps" },
+    { "slug": "triceps", "name": "Triceps", "body_map_key": "triceps" },
+    { "slug": "forearms", "name": "Forearms", "body_map_key": "forearms" },
+    { "slug": "abs", "name": "Abs", "body_map_key": "abs" },
+    { "slug": "obliques", "name": "Obliques", "body_map_key": "obliques" },
+    { "slug": "lats", "name": "Lats", "body_map_key": "lats" },
+    { "slug": "upper_back", "name": "Upper Back", "body_map_key": "upper_back" },
+    { "slug": "traps", "name": "Traps", "body_map_key": "traps" },
+    { "slug": "lower_back", "name": "Lower Back", "body_map_key": "lower_back" },
+    { "slug": "glutes", "name": "Glutes", "body_map_key": "glutes" },
+    { "slug": "quads", "name": "Quads", "body_map_key": "quads" },
+    { "slug": "hamstrings", "name": "Hamstrings", "body_map_key": "hamstrings" },
+    { "slug": "adductors", "name": "Adductors", "body_map_key": "adductors" },
+    { "slug": "abductors", "name": "Abductors", "body_map_key": "abductors" },
+    { "slug": "calves", "name": "Calves", "body_map_key": "calves" },
+    { "slug": "neck", "name": "Neck", "body_map_key": "neck" }
+  ]
+}

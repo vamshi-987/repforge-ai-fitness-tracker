@@ -1,0 +1,24 @@
+# Log a workout with the network off, then see it reach the server.
+appId: app.repforge.mobile
+---
+- runFlow: _login.yaml
+- setAirplaneMode: enabled
+- tapOn: Workout
+- tapOn: Start empty workout
+- tapOn: Add exercises
+- tapOn: Bench Press (Barbell)
+- tapOn: Add 1 exercise
+- tapOn: Bench Press (Barbell) set 1 weight
+- inputText: '60'
+- tapOn: Bench Press (Barbell) set 1 reps
+- inputText: '8'
+- hideKeyboard
+- tapOn: Complete Bench Press (Barbell) set 1
+- tapOn: Finish workout
+- tapOn: Save workout
+- assertVisible: Done
+- tapOn: Done
+- setAirplaneMode: disabled
+- tapOn: Profile
+- tapOn: Workout history
+- assertVisible: Bench Press (Barbell)
